@@ -1,6 +1,7 @@
 import app from "./app";
 import { connectDb, sequelize } from "./config/database";
 import "dotenv/config";
+import "./models/assosiation";
 
 const PORT = 3000;
 
