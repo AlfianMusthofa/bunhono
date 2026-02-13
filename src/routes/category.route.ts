@@ -3,6 +3,6 @@ import { Hono } from "hono";
 
 const categoryRoute = new Hono();
 
-categoryRoute.post("", addCategory);
+categoryRoute.post("/", addCategory);
 
 export default categoryRoute;

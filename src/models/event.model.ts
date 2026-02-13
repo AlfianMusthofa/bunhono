@@ -1,5 +1,8 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/database";
+import type { Category } from "./category.model";
+import type { Mentor } from "./mentor.model";
+import type { User } from "./user.model";
 
 export class Event extends Model {
   declare id: number;
@@ -7,9 +10,12 @@ export class Event extends Model {
   declare description: string;
   declare startAt: Date;
   declare location: string;
-  declare category: number;
-  declare mentor: number;
+  declare categoryId: number;
+  declare category?: Category;
+  declare mentorId: number;
+  declare mentor?: Mentor;
   declare image: string | null;
+  declare Users?: User[];
 }
 
 Event.init(
@@ -35,7 +41,7 @@ Event.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    category: {
+    categoryId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
@@ -43,7 +49,7 @@ Event.init(
         key: "id",
       },
     },
-    mentor: {
+    mentorId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {

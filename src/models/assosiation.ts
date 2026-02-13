@@ -1,21 +1,41 @@
 import { Event } from "./event.model";
 import { Category } from "./category.model";
 import { Mentor } from "./mentor.model";
+import { User } from "./user.model";
+import { EventParticipantModel } from "./eventParticipant.model";
+import { RefreshToken } from "./refreshToken.model";
 
 Category.hasMany(Event, {
-  foreignKey: "category",
-});
-
-Event.belongsTo(Category, {
-  foreignKey: "category",
+  foreignKey: "categoryId",
 });
 
 Mentor.hasMany(Event, {
-  foreignKey: "mentor",
+  foreignKey: "mentorId",
+});
+
+Event.belongsTo(Category, {
+  foreignKey: "categoryId",
 });
 
 Event.belongsTo(Mentor, {
-  foreignKey: "mentor",
+  foreignKey: "mentorId",
 });
+
+// Many to Many
+
+User.belongsToMany(Event, {
+  through: EventParticipantModel,
+  foreignKey: "userId",
+  otherKey: "eventId",
+});
+
+Event.belongsToMany(User, {
+  through: EventParticipantModel,
+  foreignKey: "eventId",
+  otherKey: "userId",
+});
+
+User.hasMany(RefreshToken, { foreignKey: "userId" });
+RefreshToken.belongsTo(User, { foreignKey: "userId" });
 
 export { Event, Mentor, Category };

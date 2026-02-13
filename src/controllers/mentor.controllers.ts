@@ -42,3 +42,34 @@ export const getAllMentors = async (c: Context) => {
   const mentors = await Mentor.findAll();
   return c.json(mentors);
 };
+
+export const updateMentor = async (c: Context) => {
+  const id = Number(c.req.param("id"));
+  const formData = await c.req.formData();
+  const name = formData.get("name") as string;
+  const position = formData.get("position") as string;
+  const bio = formData.get("bio") as string;
+  const imageMentor = formData.get("image") as File | null;
+
+  const mentor = await Mentor.findByPk(id);
+
+  if (!mentor) {
+    return c.json({ message: "Mentor not found!" }, 404);
+  }
+
+  if (typeof name === "string") mentor.name = name;
+  if (typeof position === "string") mentor.position = position;
+  if (typeof bio === "string") mentor.bio = position;
+
+  if (imageMentor && imageMentor.size > 0) {
+    const imagePath = await saveImage(imageMentor);
+    mentor.image = imagePath;
+  }
+
+  await mentor.save();
+
+  return c.json({
+    message: "Mentor has been updated!",
+    mentor,
+  });
+};
