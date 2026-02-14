@@ -1,10 +1,11 @@
 import type { Context } from "hono";
 import { Event } from "../models/event.model";
 import { saveImage } from "../utils/upload";
-import { User } from "../models/user.model";
-import { Category } from "../models/category.model";
-import { Mentor } from "../models/mentor.model";
 import { EventParticipantModel } from "../models/eventParticipant.model";
+import {
+  getAllEventsFunction,
+  getEventByIdFunction,
+} from "../service/event-service";
 
 export const createEvent = async (c: Context) => {
   const formData = await c.req.formData();
@@ -65,25 +66,16 @@ export const createEvent = async (c: Context) => {
 export const getAllEvents = async (c: Context) => {
   const limit = Number(c.req.query("limit")) || 10;
   const page = Number(c.req.query("page")) || 1;
-  const offset = (page - 1) * limit;
 
-  const { rows, count } = await Event.findAndCountAll({
-    limit,
-    offset,
-    order: [["startAt", "DESC"]],
-    include: [
-      { model: Category, attributes: ["name"] },
-      { model: Mentor, attributes: ["name"] },
-    ],
-  });
+  const result = await getAllEventsFunction({ limit, page });
 
   return c.json({
-    data: rows,
+    data: result.rows,
     meta: {
-      total: count,
-      page,
-      limit,
-      totalPages: Math.ceil(count / limit),
+      total: result.count,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
     },
   });
 };
@@ -157,18 +149,7 @@ export const joinEvent = async (c: Context) => {
 export const getEventById = async (c: Context) => {
   const id = Number(c.req.param("id"));
 
-  const event = await Event.findByPk(id, {
-    include: [
-      {
-        model: Category,
-        attributes: ["name"],
-      },
-      {
-        model: Mentor,
-        attributes: ["name"],
-      },
-    ],
-  });
+  const event = await getEventByIdFunction({ id });
 
   if (!event) {
     return c.json({ message: "Event not found!" }, 404);
