@@ -5,7 +5,11 @@ import { EventParticipantModel } from "../models/eventParticipant.model";
 import {
   getAllEventsFunction,
   getEventByIdFunction,
+  getEventBySlugService,
 } from "../service/event-service";
+import { generateSlug } from "../utils/slug";
+import { Category } from "../models/category.model";
+import { Mentor } from "../models/mentor.model";
 
 export const createEvent = async (c: Context) => {
   const formData = await c.req.formData();
@@ -17,6 +21,8 @@ export const createEvent = async (c: Context) => {
   const mentorId = formData.get("mentorId");
   const categoryId = formData.get("categoryId");
   const imageFile = formData.get("image") as File | null;
+
+  const slug = generateSlug(title);
 
   if (!title) {
     return c.json({ message: "Title is required" }, 400);
@@ -58,6 +64,7 @@ export const createEvent = async (c: Context) => {
     mentorId,
     categoryId,
     image: imagePath,
+    slug: slug,
   });
 
   return c.json(event, 201);
@@ -157,5 +164,33 @@ export const getEventById = async (c: Context) => {
 
   return c.json({
     event,
+  });
+};
+
+export const getEventBySlug = async (c: Context) => {
+  const slug = c.req.param("slug");
+  const result = await getEventBySlugService({ slug });
+
+  if (!result) {
+    return c.json(
+      {
+        message: "Event not found!",
+      },
+      404,
+    );
+  }
+
+  return c.json({
+    id: result.id,
+    title: result.title,
+    description: result.description,
+    image: result.image,
+    startAt: result.startAt,
+    location: result.location,
+    mentor: result.Mentor.name,
+    category: result.Category.name,
+    bio: result.Mentor.bio,
+    position: result.Mentor.position,
+    mentorImage: result.Mentor.image,
   });
 };

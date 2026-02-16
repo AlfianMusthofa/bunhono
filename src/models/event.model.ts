@@ -16,6 +16,7 @@ export class Event extends Model {
   declare mentor?: Mentor;
   declare image: string | null;
   declare Users?: User[];
+  declare slug: string;
 }
 
 Event.init(
@@ -60,6 +61,10 @@ Event.init(
     image: {
       type: DataTypes.STRING,
       allowNull: true,
+    },
+    slug: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
   },
   {

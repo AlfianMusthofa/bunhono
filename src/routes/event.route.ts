@@ -3,6 +3,7 @@ import {
   createEvent,
   getAllEvents,
   getEventById,
+  getEventBySlug,
   joinEvent,
   updateEvent,
 } from "../controllers/event.controllers";
@@ -11,11 +12,12 @@ import { getEventParticipants } from "../controllers/eventParticipant.controller
 
 const eventRoute = new Hono();
 
-eventRoute.post("/", authMiddleware, createEvent);
+eventRoute.post("/", createEvent);
 eventRoute.get("/", getAllEvents);
-eventRoute.put("/:id", updateEvent);
+eventRoute.put("/id/:id", updateEvent);
 eventRoute.post("/:id/join", authMiddleware, joinEvent);
 eventRoute.get("/:id", getEventById);
 eventRoute.get("/:id/participants", getEventParticipants);
+eventRoute.get("/slug/:slug", getEventBySlug);
 
 export default eventRoute;
