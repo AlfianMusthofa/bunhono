@@ -6,6 +6,7 @@ interface EventProps {
   limit?: number;
   page?: number;
   id?: number;
+  slug?: string;
 }
 
 export const getAllEventsFunction = async ({
@@ -41,4 +42,24 @@ export const getEventByIdFunction = async ({ id }: EventProps) => {
   });
 
   return event;
+};
+
+export const getEventBySlugService = async ({ slug }: EventProps) => {
+  const result = await Event.findOne({
+    where: {
+      slug,
+    },
+    include: [
+      {
+        model: Category,
+        attributes: ["name"],
+      },
+      {
+        model: Mentor,
+        attributes: ["name", "bio", "position", "image"],
+      },
+    ],
+  });
+
+  return result;
 };

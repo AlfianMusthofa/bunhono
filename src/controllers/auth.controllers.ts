@@ -26,11 +26,6 @@ export const login = async (c: Context) => {
     return c.json({ message: "Email or Password Invalid!" }, 401);
   }
 
-  //   const token = signToken({
-  //     id: user.id,
-  //     email: user.email,
-  //   });
-
   const payload = {
     id: user.id,
     email: user.email,

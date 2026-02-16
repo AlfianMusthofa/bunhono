@@ -4,15 +4,6 @@ import { v4 as uuid } from "uuid";
 import cloudinary from "../config/cloudinary";
 
 export const saveImage = async (file: File) => {
-  //   const ext = file.name.split(".").pop();
-  //   const filename = `${uuid()}.${ext}`;
-  //   const uploadPath = join(process.cwd(), "uploads", filename);
-
-  //   const buffer = Buffer.from(await file.arrayBuffer());
-  //   await writeFile(uploadPath, buffer);
-
-  //   return `/uploads/${filename}`;
-
   const buffer = Buffer.from(await file.arrayBuffer());
 
   return new Promise<{ secure_url: string }>((resolve, reject) => {
@@ -29,4 +20,8 @@ export const saveImage = async (file: File) => {
       )
       .end(buffer);
   });
+};
+
+export const deleteImage = async (publicId: string) => {
+  await cloudinary.uploader.destroy(publicId);
 };

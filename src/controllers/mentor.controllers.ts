@@ -22,7 +22,8 @@ export const addMentor = async (c: Context) => {
       return c.json({ message: "Image max size is 2MB" }, 200);
     }
 
-    imagePath = await saveImage(imageFile);
+    const uploaded = await saveImage(imageFile);
+    imagePath = uploaded.secure_url;
   }
 
   const mentor = await Mentor.create({
@@ -62,8 +63,8 @@ export const updateMentor = async (c: Context) => {
   if (typeof bio === "string") mentor.bio = position;
 
   if (imageMentor && imageMentor.size > 0) {
-    const imagePath = await saveImage(imageMentor);
-    mentor.image = imagePath;
+    const uploaded = await saveImage(imageMentor);
+    mentor.image = uploaded.secure_url;
   }
 
   await mentor.save();
