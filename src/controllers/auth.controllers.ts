@@ -91,6 +91,7 @@ export const refresh = async (c: Context) => {
 };
 
 export const logout = async (c: Context) => {
+  const authUser = c.get("user") as { id: number };
   const { refreshToken } = await c.req.json();
 
   const tokenHash = crypto
@@ -99,8 +100,29 @@ export const logout = async (c: Context) => {
     .digest("hex");
 
   await RefreshToken.destroy({
-    where: { tokenHash },
+    where: {
+      userId: authUser.id,
+      tokenHash,
+    },
   });
 
   return c.json({ message: "Logout success" });
+};
+
+export const me = async (c: Context) => {
+  const authUser = c.get("user") as { id: number };
+
+  if (!authUser?.id) {
+    return c.json({ message: "Unauthorized" }, 401);
+  }
+
+  const user = await User.findByPk(authUser.id, {
+    attributes: ["id", "name", "email"],
+  });
+
+  if (!user) {
+    return c.json({ message: "User not found" }, 404);
+  }
+
+  return c.json(user);
 };

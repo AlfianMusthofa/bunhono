@@ -101,7 +101,7 @@ export const getUserById = async (c: Context) => {
 };
 
 export const getMe = async (c: Context) => {
-  const authUser = c.get("user") as { id: number; email: string };
+  const authUser = c.get("user") as { id: number };
 
   if (!authUser?.id) {
     return c.json({ message: "Unauthorized" }, 401);
