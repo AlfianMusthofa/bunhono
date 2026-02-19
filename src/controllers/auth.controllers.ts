@@ -82,6 +82,11 @@ export const refresh = async (c: Context) => {
     return c.json({ message: "Invalid refresh token" }, 401);
   }
 
+  if (stored.expiresAt < new Date()) {
+    await stored.destroy();
+    return c.json({ message: "Refresh token expired" }, 401);
+  }
+
   const newAccessToken = signToken({
     id: payload.id,
     email: payload.email,

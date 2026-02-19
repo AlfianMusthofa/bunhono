@@ -99,21 +99,3 @@ export const getUserById = async (c: Context) => {
 
   return c.json(user);
 };
-
-export const getMe = async (c: Context) => {
-  const authUser = c.get("user") as { id: number };
-
-  if (!authUser?.id) {
-    return c.json({ message: "Unauthorized" }, 401);
-  }
-
-  const user = await User.findByPk(authUser.id, {
-    attributes: ["id", "name", "email"],
-  });
-
-  if (!user) {
-    return c.json({ message: "User not found!" }, 404);
-  }
-
-  return c.json(user);
-};

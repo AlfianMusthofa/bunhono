@@ -5,7 +5,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 const authRoute = new Hono();
 
 authRoute.post("/login", login);
-authRoute.post("/refresh", authMiddleware, refresh);
+authRoute.post("/refresh", refresh);
 authRoute.post("/logout", authMiddleware, logout);
 authRoute.get("/me", authMiddleware, me);
 
