@@ -99,3 +99,34 @@ export const getUserById = async (c: Context) => {
 
   return c.json(user);
 };
+
+export const userEventHistory = async (c: Context) => {
+  const authUser = c.get("user") as { id: number };
+
+  if (!authUser?.id || isNaN(authUser.id)) {
+    return c.json({ message: "Invalid id user" }, 401);
+  }
+
+  const user = await User.findByPk(authUser.id, {
+    attributes: ["id", "name"],
+    include: {
+      model: Event,
+      attributes: ["id", "title", "location"],
+      through: {
+        attributes: [],
+      },
+    },
+  });
+
+  if (!user) {
+    return c.json({ message: "History not found" }, 404);
+  }
+
+  return c.json({
+    user: {
+      id: user.id,
+      name: user.name,
+    },
+    Events: user.Events,
+  });
+};

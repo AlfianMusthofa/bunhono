@@ -4,6 +4,7 @@ import {
   getUserById,
   register,
   update,
+  userEventHistory,
 } from "../controllers/user.controllers";
 import { authMiddleware } from "../middleware/auth.middleware";
 
@@ -13,5 +14,6 @@ userRoute.get("/", authMiddleware, getUser);
 userRoute.post("/", register);
 userRoute.patch("/", authMiddleware, update);
 userRoute.get("/:id", authMiddleware, getUserById);
+userRoute.get("/me/history", authMiddleware, userEventHistory);
 
 export default userRoute;
