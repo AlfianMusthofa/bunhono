@@ -122,7 +122,7 @@ export const me = async (c: Context) => {
   }
 
   const user = await User.findByPk(authUser.id, {
-    attributes: ["id", "name", "email"],
+    attributes: ["id", "name", "email", "image"],
   });
 
   if (!user) {

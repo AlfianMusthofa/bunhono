@@ -1,5 +1,6 @@
 import { Category } from "../models/category.model";
 import { Event } from "../models/event.model";
+import { EventStatus } from "../models/eventStatus.model";
 import { Mentor } from "../models/mentor.model";
 
 interface EventProps {
@@ -10,21 +11,43 @@ interface EventProps {
 }
 
 export const getAllEventsFunction = async ({
-  limit = 1,
-  page = 10,
-}: EventProps) => {
+  limit = 10,
+  page = 1,
+  status,
+}: {
+  limit?: number;
+  page?: number;
+  status?: string;
+}) => {
   const offset = (page - 1) * limit;
+
+  const where: any = {};
+  const include: any[] = [
+    { model: Category, attributes: ["name"] },
+    { model: Mentor, attributes: ["name"] },
+    {
+      model: EventStatus,
+      as: "status",
+      attributes: ["code", "name"],
+      ...(status && { where: { code: status } }),
+    },
+  ];
+
   const { rows, count } = await Event.findAndCountAll({
+    where,
     limit,
     offset,
     order: [["startAt", "DESC"]],
-    include: [
-      { model: Category, attributes: ["name"] },
-      { model: Mentor, attributes: ["name"] },
-    ],
+    include,
   });
 
-  return { rows, count, page, limit, totalPages: Math.ceil(count / limit) };
+  return {
+    rows,
+    count,
+    page,
+    limit,
+    totalPages: Math.ceil(count / limit),
+  };
 };
 
 export const getEventByIdFunction = async ({ id }: EventProps) => {

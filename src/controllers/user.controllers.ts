@@ -9,83 +9,69 @@ import {
   getSingleUserById,
   registerUser,
 } from "../service/user-service";
+import { saveImage } from "../utils/upload";
 
 export const getUser = async (c: Context) => {
   const users = await getAllUsers();
   return c.json(users);
 };
 
-export const register = async (c: Context) => {
-  const body = await c.req.json();
-  const parsed = registeredSchema.safeParse(body);
+export const registerUserNew = async (c: Context) => {
+  const formdata = await c.req.formData();
+  const name = formdata.get("name") as string;
+  const email = formdata.get("email") as string;
+  const password = formdata.get("password") as string;
+  const imageFile = formdata.get("image") as File | null;
+  let imagePath: string | null = null;
 
-  if (!parsed.success) {
-    return c.json(
-      {
-        message: "Validation error",
-        errors: parsed.error.flatten(),
-      },
-      400,
-    );
-  }
-
-  const data = parsed.data;
-
-  try {
-    const user = await registerUser(data);
-    return c.json(
-      {
-        message: "Registered success",
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        },
-      },
-      201,
-    );
-  } catch (err: any) {
-    if (err.message === "EMAIL_EXISTS") {
-      return c.json({ message: "Email already used" }, 400);
+  if (imageFile) {
+    if (!imageFile.type.startsWith("image/")) {
+      return c.json({ message: "File must be an image" }, 400);
     }
-    return c.json({ message: "Internal server error" }, 500);
+    if (imageFile.size > 1_000_000) {
+      return c.json({ message: "Image size max 2MB" }, 400);
+    }
+    const uploaded = await saveImage(imageFile);
+    imagePath = uploaded.secure_url;
   }
+
+  const user = await User.create({
+    name,
+    email,
+    password,
+    image: imagePath,
+  });
+
+  return c.json(user, 201);
 };
 
-export const update = async (c: Context) => {
-  const authUser = c.get("user") as {
-    id: number;
-  };
-  const body = await c.req.json();
-
-  const data = updateUser.parse(body);
+export const updateUserNew = async (c: Context) => {
+  const authUser = c.get("user") as { id: number };
+  const formdata = await c.req.formData();
+  const name = formdata.get("name") as string;
+  const email = formdata.get("email") as string;
+  const password = formdata.get("password") as string;
+  const imageFile = formdata.get("image") as File | null;
 
   const user = await User.findByPk(authUser.id);
   if (!user) {
-    return c.json({ message: "Users not found" }, 404);
+    return c.json({ message: "User not found kocak" }, 404);
   }
 
-  if (data.name !== undefined) {
-    user.name = data.name;
-  }
+  if (typeof name === "string") user.name = name;
+  if (typeof email === "string") user.email = email;
+  if (typeof password === "string") user.password = email;
 
-  if (data.email !== undefined) {
-    user.email = data.email;
-  }
-
-  if (data.password !== undefined) {
-    user.password = await bcrypt.hash(data.password, 10);
+  if (imageFile && imageFile.size > 0) {
+    const uploaded = await saveImage(imageFile);
+    user.image = uploaded.secure_url;
   }
 
   await user.save();
 
   return c.json({
-    message: "User updated",
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    },
+    message: "User has been updated",
+    user,
   });
 };
 

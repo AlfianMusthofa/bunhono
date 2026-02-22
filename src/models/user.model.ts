@@ -6,6 +6,7 @@ export class User extends Model {
   declare name: string;
   declare email: string;
   declare password: string;
+  declare image: string | null;
 }
 
 User.init(
@@ -26,6 +27,10 @@ User.init(
     password: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    image: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   },
   {

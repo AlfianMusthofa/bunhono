@@ -17,6 +17,8 @@ export class Event extends Model {
   declare image: string | null;
   declare Users?: User[];
   declare slug: string;
+  declare statusId: number;
+  declare capacity: number;
 }
 
 Event.init(
@@ -64,6 +66,18 @@ Event.init(
     },
     slug: {
       type: DataTypes.STRING,
+      allowNull: false,
+    },
+    statusId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: "event_statuses",
+        key: "id",
+      },
+    },
+    capacity: {
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
   },

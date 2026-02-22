@@ -73,8 +73,9 @@ export const createEvent = async (c: Context) => {
 export const getAllEvents = async (c: Context) => {
   const limit = Number(c.req.query("limit")) || 10;
   const page = Number(c.req.query("page")) || 1;
+  const status = c.req.query("status");
 
-  const result = await getAllEventsFunction({ limit, page });
+  const result = await getAllEventsFunction({ limit, page, status });
 
   return c.json({
     data: result.rows,
