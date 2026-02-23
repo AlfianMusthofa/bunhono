@@ -49,4 +49,12 @@ Event.belongsTo(EventStatus, {
   as: "status",
 });
 
+Event.hasMany(EventParticipantModel, {
+  foreignKey: "eventId",
+});
+
+EventParticipantModel.belongsTo(Event, {
+  foreignKey: "eventId",
+});
+
 export { Event, Mentor, Category };

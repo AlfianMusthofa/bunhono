@@ -1,7 +1,9 @@
+import { sequelize } from "../config/database";
 import { Category } from "../models/category.model";
 import { Event } from "../models/event.model";
 import { EventStatus } from "../models/eventStatus.model";
 import { Mentor } from "../models/mentor.model";
+import { EventParticipantModel } from "../models/eventParticipant.model";
 
 interface EventProps {
   limit?: number;
@@ -52,6 +54,14 @@ export const getAllEventsFunction = async ({
 
 export const getEventByIdFunction = async ({ id }: EventProps) => {
   const event = await Event.findByPk(id, {
+    attributes: {
+      include: [
+        [
+          sequelize.fn("COUNT", sequelize.col("EventParticipantModels.id")),
+          "registered_count",
+        ],
+      ],
+    },
     include: [
       {
         model: Category,
@@ -61,7 +71,12 @@ export const getEventByIdFunction = async ({ id }: EventProps) => {
         model: Mentor,
         attributes: ["name"],
       },
+      {
+        model: EventParticipantModel,
+        attributes: [],
+      },
     ],
+    group: ["Event.id", "Category.id", "Mentor.id"],
   });
 
   return event;

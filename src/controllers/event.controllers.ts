@@ -20,6 +20,8 @@ export const createEvent = async (c: Context) => {
   const startAtRaw = formData.get("startAt");
   const mentorId = formData.get("mentorId");
   const categoryId = formData.get("categoryId");
+  const statusId = formData.get("statusId");
+  const capacity = formData.get("capacity");
   const imageFile = formData.get("image") as File | null;
 
   const slug = generateSlug(title);
@@ -65,6 +67,8 @@ export const createEvent = async (c: Context) => {
     categoryId,
     image: imagePath,
     slug: slug,
+    statusId,
+    capacity,
   });
 
   return c.json(event, 201);
@@ -163,9 +167,7 @@ export const getEventById = async (c: Context) => {
     return c.json({ message: "Event not found!" }, 404);
   }
 
-  return c.json({
-    event,
-  });
+  return c.json(event);
 };
 
 export const getEventBySlug = async (c: Context) => {
@@ -181,17 +183,5 @@ export const getEventBySlug = async (c: Context) => {
     );
   }
 
-  return c.json({
-    id: result.id,
-    title: result.title,
-    description: result.description,
-    image: result.image,
-    startAt: result.startAt,
-    location: result.location,
-    mentor: result.Mentor.name,
-    category: result.Category.name,
-    bio: result.Mentor.bio,
-    position: result.Mentor.position,
-    mentorImage: result.Mentor.image,
-  });
+  return c.json(result);
 };
