@@ -5,6 +5,7 @@ import {
   getEventById,
   getEventBySlug,
   joinEvent,
+  statusCount,
   updateEvent,
 } from "../controllers/event.controllers";
 import { authMiddleware } from "../middleware/auth.middleware";
@@ -19,5 +20,6 @@ eventRoute.post("/:id/join", authMiddleware, joinEvent);
 eventRoute.get("/:id", getEventById);
 eventRoute.get("/:id/participants", getEventParticipants);
 eventRoute.get("/slug/:slug", getEventBySlug);
+eventRoute.get("/status/count", statusCount);
 
 export default eventRoute;

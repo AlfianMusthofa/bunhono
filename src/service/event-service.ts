@@ -4,6 +4,7 @@ import { Event } from "../models/event.model";
 import { EventStatus } from "../models/eventStatus.model";
 import { Mentor } from "../models/mentor.model";
 import { EventParticipantModel } from "../models/eventParticipant.model";
+import { Sequelize } from "sequelize";
 
 interface EventProps {
   limit?: number;
@@ -33,6 +34,10 @@ export const getAllEventsFunction = async ({
       attributes: ["code", "name"],
       ...(status && { where: { code: status } }),
     },
+    {
+      model: EventParticipantModel,
+      attributes: [],
+    },
   ];
 
   const { rows, count } = await Event.findAndCountAll({
@@ -41,14 +46,34 @@ export const getAllEventsFunction = async ({
     offset,
     order: [["startAt", "DESC"]],
     include,
+    attributes: {
+      include: [
+        [
+          Sequelize.fn("COUNT", Sequelize.col("EventParticipantModels.id")),
+          "registered_count",
+        ],
+      ],
+    },
+    group: ["Event.id", "Category.id", "Mentor.id", "status.id"], // penting agar COUNT benar
+    subQuery: false,
   });
+
+  const totalCountResult = await Event.count({ where });
+
+  //   return {
+  //     rows,
+  //     count,
+  //     page,
+  //     limit,
+  //     totalPages: Math.ceil(count / limit),
+  //   };
 
   return {
     rows,
-    count,
+    count: totalCountResult,
     page,
     limit,
-    totalPages: Math.ceil(count / limit),
+    totalPages: Math.ceil(totalCountResult / limit),
   };
 };
 

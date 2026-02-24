@@ -10,6 +10,8 @@ import {
 import { generateSlug } from "../utils/slug";
 import { Category } from "../models/category.model";
 import { Mentor } from "../models/mentor.model";
+import { EventStatus } from "../models/eventStatus.model";
+import { col, fn } from "sequelize";
 
 export const createEvent = async (c: Context) => {
   const formData = await c.req.formData();
@@ -182,6 +184,22 @@ export const getEventBySlug = async (c: Context) => {
       404,
     );
   }
+
+  return c.json(result);
+};
+
+export const statusCount = async (c: Context) => {
+  const result = await EventStatus.findAll({
+    attributes: ["id", "name", [fn("COUNT", col("Events.id")), "total"]],
+    include: [
+      {
+        model: Event,
+        attributes: [],
+        as: "events",
+      },
+    ],
+    group: ["EventStatus.id"],
+  });
 
   return c.json(result);
 };
