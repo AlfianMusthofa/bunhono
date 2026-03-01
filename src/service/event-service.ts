@@ -17,17 +17,35 @@ export const getAllEventsFunction = async ({
   limit = 10,
   page = 1,
   status,
+  category,
 }: {
   limit?: number;
   page?: number;
   status?: string;
+  category?: string;
 }) => {
   const offset = (page - 1) * limit;
 
   const where: any = {};
+
+  if (status) {
+    where["$EventStatus.code$"] = status;
+  }
+
+  if (category) {
+    const categoryId = Number(category);
+    if (!Number.isNaN(categoryId)) {
+      where.categoryId = categoryId;
+    }
+  }
+
   const include: any[] = [
     { model: Category, attributes: ["name"] },
     { model: Mentor, attributes: ["name"] },
+    {
+      model: Category,
+      attributes: ["id", "name"],
+    },
     {
       model: EventStatus,
       as: "status",
@@ -60,14 +78,6 @@ export const getAllEventsFunction = async ({
 
   const totalCountResult = await Event.count({ where });
 
-  //   return {
-  //     rows,
-  //     count,
-  //     page,
-  //     limit,
-  //     totalPages: Math.ceil(count / limit),
-  //   };
-
   return {
     rows,
     count: totalCountResult,
@@ -95,6 +105,11 @@ export const getEventByIdFunction = async ({ id }: EventProps) => {
       {
         model: Mentor,
         attributes: ["name"],
+      },
+      {
+        model: EventStatus,
+        attributes: ["name"],
+        as: "status",
       },
       {
         model: EventParticipantModel,

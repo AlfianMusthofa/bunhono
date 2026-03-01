@@ -19,6 +19,11 @@ export class Event extends Model {
   declare slug: string;
   declare statusId: number;
   declare capacity: number;
+  declare locationType: "online" | "offline";
+  declare meetingLink: string;
+  declare priceType: "free" | "paid";
+  declare price: number;
+  declare currency: number;
 }
 
 Event.init(
@@ -40,9 +45,17 @@ Event.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    locationType: {
+      type: DataTypes.ENUM("online", "offline"),
+      allowNull: false,
+    },
     location: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
+    },
+    meetingLink: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     categoryId: {
       type: DataTypes.INTEGER,
@@ -79,6 +92,19 @@ Event.init(
     capacity: {
       type: DataTypes.INTEGER,
       allowNull: false,
+    },
+    priceType: {
+      type: DataTypes.ENUM("free", "paid"),
+      allowNull: false,
+      defaultValue: "free",
+    },
+    price: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    currency: {
+      type: DataTypes.STRING,
+      defaultValue: "IDR",
     },
   },
   {

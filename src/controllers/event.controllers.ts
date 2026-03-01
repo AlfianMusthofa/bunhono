@@ -8,8 +8,6 @@ import {
   getEventBySlugService,
 } from "../service/event-service";
 import { generateSlug } from "../utils/slug";
-import { Category } from "../models/category.model";
-import { Mentor } from "../models/mentor.model";
 import { EventStatus } from "../models/eventStatus.model";
 import { col, fn } from "sequelize";
 
@@ -25,6 +23,10 @@ export const createEvent = async (c: Context) => {
   const statusId = formData.get("statusId");
   const capacity = formData.get("capacity");
   const imageFile = formData.get("image") as File | null;
+  const locationType = formData.get("locationType") as string;
+  const meetingLink = formData.get("meetingLink") as string | null;
+  const priceType = formData.get("priceType") as string;
+  const price = formData.get("price");
 
   const slug = generateSlug(title);
 
@@ -32,8 +34,32 @@ export const createEvent = async (c: Context) => {
     return c.json({ message: "Title is required" }, 400);
   }
 
-  if (!location) {
-    return c.json({ message: "Location is required" }, 400);
+  if (!locationType || !["offline", "online"].includes(locationType)) {
+    return c.json({ message: "locationType must be offline or online" }, 400);
+  }
+
+  if (!priceType || !["free", "paid"].includes(priceType)) {
+    return c.json({ message: "PriceType must be free or paid" }, 400);
+  }
+
+  if (locationType === "offline" && !location) {
+    return c.json({ message: "Location is required for offline event" }, 400);
+  }
+
+  if (locationType === "online" && !meetingLink) {
+    return c.json(
+      { message: "Meeting link is required for online event" },
+      400,
+    );
+  }
+
+  if (priceType === "paid" && !price) {
+    return c.json(
+      {
+        message: "Price is required for paid event",
+      },
+      400,
+    );
   }
 
   if (!startAtRaw || typeof startAtRaw !== "string") {
@@ -46,6 +72,9 @@ export const createEvent = async (c: Context) => {
   }
 
   let imagePath: string | null = null;
+
+  const finalLocation = locationType === "offline" ? location : null;
+  const finalMeetingLink = locationType === "online" ? meetingLink : null;
 
   if (imageFile) {
     if (!imageFile.type.startsWith("image/")) {
@@ -64,13 +93,17 @@ export const createEvent = async (c: Context) => {
     title,
     description,
     startAt,
-    location,
+    locationType,
+    location: finalLocation,
+    meetingLink: finalMeetingLink,
     mentorId,
     categoryId,
     image: imagePath,
     slug: slug,
     statusId,
     capacity,
+    priceType,
+    price,
   });
 
   return c.json(event, 201);
@@ -80,8 +113,9 @@ export const getAllEvents = async (c: Context) => {
   const limit = Number(c.req.query("limit")) || 10;
   const page = Number(c.req.query("page")) || 1;
   const status = c.req.query("status");
+  const category = c.req.query("category");
 
-  const result = await getAllEventsFunction({ limit, page, status });
+  const result = await getAllEventsFunction({ limit, page, status, category });
 
   return c.json({
     data: result.rows,
@@ -103,6 +137,15 @@ export const updateEvent = async (c: Context) => {
   const startAt = formData.get("startAt") as Date | null;
   const imageEventNew = formData.get("image") as File | null;
 
+  const statusIdRaw = formData.get("statusId");
+  const categoryIdRaw = formData.get("categoryId");
+  const mentorIdRaw = formData.get("mentorId");
+  const capacityRaw = formData.get("capacity");
+  const meetingLinkRaw = formData.get("meetingLink");
+  const priceRaw = formData.get("price");
+  const priceTypeRaw = formData.get("priceType");
+  const locationTypeRaw = formData.get("locationType");
+
   const event = await Event.findByPk(id);
 
   if (!event) {
@@ -113,10 +156,61 @@ export const updateEvent = async (c: Context) => {
   if (typeof location === "string") event.location = location;
   if (typeof description === "string") event.description = description;
   if (typeof startAt === "string") event.startAt = startAt;
+  if (typeof meetingLinkRaw === "string") event.meetingLink = meetingLinkRaw;
 
   if (imageEventNew && imageEventNew.size > 0) {
     const uploaded = await saveImage(imageEventNew);
     event.image = uploaded.secure_url;
+  }
+
+  if (statusIdRaw !== undefined && statusIdRaw !== null && statusIdRaw !== "") {
+    const statusIdNew = Number(statusIdRaw);
+    if (Number.isNaN(statusIdNew)) {
+      throw new Error("Status Id tidak valid");
+    }
+    event.statusId = statusIdNew;
+  }
+
+  if (
+    categoryIdRaw !== undefined &&
+    categoryIdRaw !== null &&
+    categoryIdRaw !== ""
+  ) {
+    const categoryIdNew = Number(categoryIdRaw);
+    if (Number.isNaN(categoryIdNew)) {
+      throw new Error("Category Id tidak valid");
+    }
+    event.categoryId = categoryIdNew;
+  }
+
+  if (mentorIdRaw !== undefined && mentorIdRaw !== null && mentorIdRaw !== "") {
+    const mentorIdNew = Number(mentorIdRaw);
+    if (Number.isNaN(mentorIdNew)) {
+      throw new Error("Mentor Id tidak valid");
+    }
+    event.mentorId = mentorIdNew;
+  }
+
+  if (capacityRaw !== undefined && capacityRaw !== null && capacityRaw !== "") {
+    const capacityNew = Number(capacityRaw);
+    if (Number.isNaN(capacityNew)) {
+      throw new Error("Capacity tidak valid");
+    }
+    event.capacity = capacityNew;
+  }
+
+  if (typeof priceTypeRaw === "string" && priceTypeRaw !== "") {
+    if (!["free", "paid"].includes(priceTypeRaw)) {
+      throw new Error("PriceType tidak valid");
+    }
+    event.priceType = priceTypeRaw as "free" | "paid";
+  }
+
+  if (typeof locationTypeRaw === "string" && locationTypeRaw !== "") {
+    if (!["offline", "online"].includes(locationTypeRaw)) {
+      throw new Error("locationType tidak valid");
+    }
+    event.locationType = locationTypeRaw as "offline" | "online";
   }
 
   await event.save();
