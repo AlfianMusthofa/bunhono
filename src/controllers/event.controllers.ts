@@ -6,6 +6,7 @@ import {
   getAllEventsFunction,
   getEventByIdFunction,
   getEventBySlugService,
+  getEventMonthlyStats,
 } from "../service/event-service";
 import { generateSlug } from "../utils/slug";
 import { EventStatus } from "../models/eventStatus.model";
@@ -115,7 +116,12 @@ export const getAllEvents = async (c: Context) => {
   const status = c.req.query("status");
   const category = c.req.query("category");
 
-  const result = await getAllEventsFunction({ limit, page, status, category });
+  const result = await getAllEventsFunction({
+    limit,
+    page,
+    status,
+    category,
+  });
 
   return c.json({
     data: result.rows,

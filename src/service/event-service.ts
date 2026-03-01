@@ -4,7 +4,7 @@ import { Event } from "../models/event.model";
 import { EventStatus } from "../models/eventStatus.model";
 import { Mentor } from "../models/mentor.model";
 import { EventParticipantModel } from "../models/eventParticipant.model";
-import { Sequelize } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 
 interface EventProps {
   limit?: number;
@@ -58,12 +58,33 @@ export const getAllEventsFunction = async ({
     },
   ];
 
-  const { rows, count } = await Event.findAndCountAll({
-    where,
-    limit,
-    offset,
-    order: [["startAt", "DESC"]],
-    include,
+  const rows = await Event.findAll({
+    where: category ? { categoryId: Number(category) } : undefined,
+
+    include: [
+      {
+        model: Category,
+        attributes: ["id", "name"],
+      },
+      {
+        model: Mentor,
+        attributes: ["id", "name"],
+      },
+      {
+        model: EventStatus,
+        as: "status",
+        attributes: ["id", "code", "name"],
+        ...(status && {
+          where: { code: status }, // ✅ FILTER DI JOIN
+          required: true,
+        }),
+      },
+      {
+        model: EventParticipantModel,
+        attributes: [],
+      },
+    ],
+
     attributes: {
       include: [
         [
@@ -72,18 +93,37 @@ export const getAllEventsFunction = async ({
         ],
       ],
     },
-    group: ["Event.id", "Category.id", "Mentor.id", "status.id"], // penting agar COUNT benar
+
+    group: ["Event.id", "Category.id", "Mentor.id", "status.id"],
+    order: [["startAt", "DESC"]],
+    limit,
+    offset,
     subQuery: false,
   });
 
-  const totalCountResult = await Event.count({ where });
+  const totalCount = await Event.count({
+    where: category ? { categoryId: Number(category) } : undefined,
+
+    include: [
+      {
+        model: EventStatus,
+        as: "status",
+        ...(status && {
+          where: { code: status },
+          required: true,
+        }),
+      },
+    ],
+
+    distinct: true,
+  });
 
   return {
     rows,
-    count: totalCountResult,
+    count: totalCount,
     page,
     limit,
-    totalPages: Math.ceil(totalCountResult / limit),
+    totalPages: Math.ceil(totalCount / limit),
   };
 };
 
