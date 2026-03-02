@@ -181,3 +181,85 @@ export const getEventBySlugService = async ({ slug }: EventProps) => {
 
   return result;
 };
+
+export const getEventMonthlyStats = async () => {
+  const start = new Date(new Date().getFullYear(), 0, 1); // Jan 1
+  const end = new Date(new Date().getFullYear() + 1, 0, 1); // Jan 1 next year
+
+  const data = await Event.findAll({
+    attributes: [
+      [Sequelize.fn("MONTH", Sequelize.col("createdAt")), "month"],
+      [Sequelize.fn("COUNT", Sequelize.col("id")), "total"],
+    ],
+    where: {
+      createdAt: {
+        [Op.gte]: start,
+        [Op.lt]: end,
+      },
+    },
+    group: [Sequelize.fn("MONTH", Sequelize.col("createdAt"))],
+    order: [[Sequelize.fn("MONTH", Sequelize.col("createdAt")), "ASC"]],
+    raw: true,
+  });
+
+  return data;
+};
+
+export const getParticipantsMonthlyStats = async () => {
+  const start = new Date(new Date().getFullYear(), 0, 1);
+  const end = new Date(new Date().getFullYear() + 1, 0, 1);
+
+  const data = await EventParticipantModel.findAll({
+    attributes: [
+      [Sequelize.fn("MONTH", Sequelize.col("createdAt")), "month"],
+      [Sequelize.fn("COUNT", Sequelize.col("id")), "total"],
+    ],
+    where: {
+      createdAt: {
+        [Op.gte]: start,
+        [Op.lt]: end,
+      },
+    },
+    group: [Sequelize.fn("MONTH", Sequelize.col("createdAt"))],
+    order: [[Sequelize.fn("MONTH", Sequelize.col("createdAt")), "ASC"]],
+    raw: true,
+  });
+  return data;
+};
+
+export const getUpcomingEvents = async ({ limit = 5 }: { limit?: number }) => {
+  const now = new Date();
+
+  const events = await Event.findAll({
+    where: {
+      startAt: {
+        [Op.gt]: now,
+      },
+    },
+    include: [
+      {
+        model: Category,
+        attributes: ["id", "name"],
+      },
+      {
+        model: Mentor,
+        attributes: ["id", "name"],
+      },
+      {
+        model: EventStatus,
+        as: "status",
+        attributes: ["id", "code", "name"],
+        where: {
+          code: {
+            [Op.notIn]: ["ended", "cancelled"],
+          },
+        },
+        required: true,
+      },
+    ],
+    order: [["startAt", "ASC"]],
+    limit,
+  });
+
+  return events;
+};

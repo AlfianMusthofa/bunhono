@@ -7,10 +7,12 @@ import {
   getEventByIdFunction,
   getEventBySlugService,
   getEventMonthlyStats,
+  getParticipantsMonthlyStats,
+  getUpcomingEvents,
 } from "../service/event-service";
 import { generateSlug } from "../utils/slug";
 import { EventStatus } from "../models/eventStatus.model";
-import { col, fn } from "sequelize";
+import { col, fn, Op, Sequelize } from "sequelize";
 
 export const createEvent = async (c: Context) => {
   const formData = await c.req.formData();
@@ -302,4 +304,27 @@ export const statusCount = async (c: Context) => {
   });
 
   return c.json(result);
+};
+
+export const getEventMonthlyChart = async (c: Context) => {
+  const stats = await getEventMonthlyStats();
+
+  return c.json({
+    data: stats,
+  });
+};
+
+export const getParticipantsMonthlyChart = async (c: Context) => {
+  const data = await getParticipantsMonthlyStats();
+  return c.json({ data });
+};
+
+export const getUpcomingEventsController = async (c: Context) => {
+  const limit = Number(c.req.query("limit")) || 5;
+
+  const events = await getUpcomingEvents({ limit });
+
+  return c.json({
+    data: events,
+  });
 };
