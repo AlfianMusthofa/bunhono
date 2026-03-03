@@ -117,12 +117,14 @@ export const getAllEvents = async (c: Context) => {
   const page = Number(c.req.query("page")) || 1;
   const status = c.req.query("status");
   const category = c.req.query("category");
+  const search = c.req.query("search");
 
   const result = await getAllEventsFunction({
     limit,
     page,
     status,
     category,
+    search,
   });
 
   return c.json({

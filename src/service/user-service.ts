@@ -1,11 +1,24 @@
 import bcrypt from "bcryptjs";
 import { Event } from "../models/event.model";
 import { User } from "../models/user.model";
+import { Op } from "sequelize";
 
-export const getAllUsers = async () => {
-  return await User.findAll({
-    attributes: ["id", "name", "email"],
-  });
+export const getAllUsers = async (search?: string) => {
+  const where = search
+    ? {
+        [Op.or]: [
+          { name: { [Op.like]: `%${search}%` } },
+          { email: { [Op.like]: `%${search}%` } },
+        ],
+      }
+    : {};
+
+  const users = await User.findAll({ where });
+
+  return {
+    total: users.length,
+    data: users,
+  };
 };
 
 export const getSingleUserById = async (id: number) => {

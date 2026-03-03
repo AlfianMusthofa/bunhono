@@ -18,20 +18,26 @@ export const getAllEventsFunction = async ({
   page = 1,
   status,
   category,
+  search,
 }: {
   limit?: number;
   page?: number;
   status?: string;
   category?: string;
+  search?: string;
 }) => {
   const offset = (page - 1) * limit;
 
   const where: any = {};
 
-  if (status) {
-    where["$EventStatus.code$"] = status;
+  // 🔍 SEARCH TITLE
+  if (search) {
+    where.title = {
+      [Op.like]: `%${search}%`,
+    };
   }
 
+  // 🏷️ CATEGORY FILTER
   if (category) {
     const categoryId = Number(category);
     if (!Number.isNaN(categoryId)) {
@@ -39,43 +45,18 @@ export const getAllEventsFunction = async ({
     }
   }
 
-  const include: any[] = [
-    { model: Category, attributes: ["name"] },
-    { model: Mentor, attributes: ["name"] },
-    {
-      model: Category,
-      attributes: ["id", "name"],
-    },
-    {
-      model: EventStatus,
-      as: "status",
-      attributes: ["code", "name"],
-      ...(status && { where: { code: status } }),
-    },
-    {
-      model: EventParticipantModel,
-      attributes: [],
-    },
-  ];
-
+  // 📄 QUERY DATA
   const rows = await Event.findAll({
-    where: category ? { categoryId: Number(category) } : undefined,
-
+    where,
     include: [
-      {
-        model: Category,
-        attributes: ["id", "name"],
-      },
-      {
-        model: Mentor,
-        attributes: ["id", "name"],
-      },
+      { model: Category, attributes: ["id", "name"] },
+      { model: Mentor, attributes: ["id", "name"] },
       {
         model: EventStatus,
         as: "status",
         attributes: ["id", "code", "name"],
         ...(status && {
-          where: { code: status }, // ✅ FILTER DI JOIN
+          where: { code: status },
           required: true,
         }),
       },
@@ -84,7 +65,6 @@ export const getAllEventsFunction = async ({
         attributes: [],
       },
     ],
-
     attributes: {
       include: [
         [
@@ -93,7 +73,6 @@ export const getAllEventsFunction = async ({
         ],
       ],
     },
-
     group: ["Event.id", "Category.id", "Mentor.id", "status.id"],
     order: [["startAt", "DESC"]],
     limit,
@@ -101,29 +80,30 @@ export const getAllEventsFunction = async ({
     subQuery: false,
   });
 
-  const totalCount = await Event.count({
-    where: category ? { categoryId: Number(category) } : undefined,
-
-    include: [
-      {
-        model: EventStatus,
-        as: "status",
-        ...(status && {
-          where: { code: status },
-          required: true,
-        }),
-      },
-    ],
-
+  // 📊 COUNT TOTAL (tanpa limit & offset)
+  const count = await Event.count({
+    where,
+    include: status
+      ? [
+          {
+            model: EventStatus,
+            as: "status",
+            where: { code: status },
+            required: true,
+          },
+        ]
+      : [],
     distinct: true,
   });
 
+  const totalPages = Math.ceil(count / limit);
+
   return {
     rows,
-    count: totalCount,
+    count,
     page,
     limit,
-    totalPages: Math.ceil(totalCount / limit),
+    totalPages,
   };
 };
 
@@ -226,6 +206,8 @@ export const getParticipantsMonthlyStats = async () => {
   });
   return data;
 };
+
+// UPCOMING EVENTS
 
 export const getUpcomingEvents = async ({ limit = 5 }: { limit?: number }) => {
   const now = new Date();

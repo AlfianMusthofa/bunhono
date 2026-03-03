@@ -10,7 +10,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 
 const userRoute = new Hono();
 
-userRoute.get("/", authMiddleware, getUser);
+userRoute.get("/", getUser);
 userRoute.post("/", registerUserNew);
 userRoute.patch("/", authMiddleware, updateUserNew);
 userRoute.get("/:id", authMiddleware, getUserById);

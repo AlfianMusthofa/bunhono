@@ -12,7 +12,8 @@ import {
 import { saveImage } from "../utils/upload";
 
 export const getUser = async (c: Context) => {
-  const users = await getAllUsers();
+  const search = c.req.query("search");
+  const users = await getAllUsers(search);
   return c.json(users);
 };
 
