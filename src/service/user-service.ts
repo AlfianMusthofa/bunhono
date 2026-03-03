@@ -3,7 +3,12 @@ import { Event } from "../models/event.model";
 import { User } from "../models/user.model";
 import { Op } from "sequelize";
 
-export const getAllUsers = async (search?: string) => {
+export const getAllUsers = async (
+  search?: string,
+  page: number = 1,
+  limit: number = 10,
+) => {
+  const offset = (page - 1) * limit;
   const where = search
     ? {
         [Op.or]: [
@@ -13,11 +18,21 @@ export const getAllUsers = async (search?: string) => {
       }
     : {};
 
-  const users = await User.findAll({ where });
+  const { rows, count } = await User.findAndCountAll({
+    where,
+    limit,
+    offset,
+    order: [["createdAt", "DESC"]],
+  });
 
   return {
-    total: users.length,
-    data: users,
+    data: rows,
+    meta: {
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit),
+    },
   };
 };
 

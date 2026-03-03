@@ -1,8 +1,5 @@
 import type { Context } from "hono";
 import { User } from "../models/user.model";
-import { registeredSchema } from "../validators/auth.validator";
-import bcrypt from "bcryptjs";
-import { updateUser } from "../validators/user.validator";
 import { Event } from "../models/event.model";
 import {
   getAllUsers,
@@ -13,7 +10,10 @@ import { saveImage } from "../utils/upload";
 
 export const getUser = async (c: Context) => {
   const search = c.req.query("search");
-  const users = await getAllUsers(search);
+  const page = Number(c.req.query("page")) || 1;
+  const limit = Number(c.req.query("limit")) || 10;
+
+  const users = await getAllUsers(search, page, limit);
   return c.json(users);
 };
 
