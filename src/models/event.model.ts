@@ -9,6 +9,7 @@ export class Event extends Model {
   declare title: string;
   declare description: string;
   declare startAt: Date;
+  declare endAt: Date;
   declare location: string;
   declare categoryId: number;
   declare category?: Category;
@@ -42,6 +43,10 @@ Event.init(
       allowNull: false,
     },
     startAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    endAt: {
       type: DataTypes.DATE,
       allowNull: true,
     },

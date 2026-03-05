@@ -1,7 +1,6 @@
 import type { Context } from "hono";
 import { Event } from "../models/event.model";
 import { saveImage } from "../utils/upload";
-import { EventParticipantModel } from "../models/eventParticipant.model";
 import {
   getAllEventsFunction,
   getEventByIdFunction,
@@ -9,10 +8,9 @@ import {
   getEventMonthlyStats,
   getParticipantsMonthlyStats,
   getUpcomingEvents,
+  joinEventService,
 } from "../service/event-service";
 import { generateSlug } from "../utils/slug";
-import { EventStatus } from "../models/eventStatus.model";
-import { col, fn, Op, Sequelize } from "sequelize";
 
 export const createEvent = async (c: Context) => {
   const formData = await c.req.formData();
@@ -21,6 +19,7 @@ export const createEvent = async (c: Context) => {
   const location = formData.get("location") as string;
   const description = formData.get("description") as string;
   const startAtRaw = formData.get("startAt");
+  const endAtRaw = formData.get("endAt");
   const mentorId = formData.get("mentorId");
   const categoryId = formData.get("categoryId");
   const statusId = formData.get("statusId");
@@ -69,9 +68,18 @@ export const createEvent = async (c: Context) => {
     return c.json({ message: "startAt is required" }, 400);
   }
 
+  if (!endAtRaw || typeof endAtRaw !== "string") {
+    return c.json({ message: "endAt is required" }, 400);
+  }
+
   const startAt = new Date(startAtRaw);
   if (isNaN(startAt.getTime())) {
     return c.json({ message: "Invalid startAt date" }, 400);
+  }
+
+  const endAt = new Date(endAtRaw);
+  if (isNaN(endAt.getTime())) {
+    return c.json({ message: "Invalid endAt date" }, 400);
   }
 
   let imagePath: string | null = null;
@@ -96,6 +104,7 @@ export const createEvent = async (c: Context) => {
     title,
     description,
     startAt,
+    endAt,
     locationType,
     location: finalLocation,
     meetingLink: finalMeetingLink,
@@ -145,16 +154,21 @@ export const updateEvent = async (c: Context) => {
   const location = formData.get("location") as string;
   const description = formData.get("description") as string;
   const startAt = formData.get("startAt") as Date | null;
-  const imageEventNew = formData.get("image") as File | null;
+  const endAt = formData.get("endAt") as Date | null;
+  const imageEventNew = formData.get("image") as File;
 
   const statusIdRaw = formData.get("statusId");
   const categoryIdRaw = formData.get("categoryId");
   const mentorIdRaw = formData.get("mentorId");
   const capacityRaw = formData.get("capacity");
-  const meetingLinkRaw = formData.get("meetingLink");
+  const meetingLinkRaw = formData.get("meetingLink")?.toString();
   const priceRaw = formData.get("price");
   const priceTypeRaw = formData.get("priceType");
   const locationTypeRaw = formData.get("locationType");
+
+  if (!startAt && !endAt) {
+    return c.json({ message: "Start and end is required" }, 400);
+  }
 
   const event = await Event.findByPk(id);
 
@@ -166,7 +180,9 @@ export const updateEvent = async (c: Context) => {
   if (typeof location === "string") event.location = location;
   if (typeof description === "string") event.description = description;
   if (typeof startAt === "string") event.startAt = startAt;
+  if (typeof endAt === "string") event.endAt = endAt;
   if (typeof meetingLinkRaw === "string") event.meetingLink = meetingLinkRaw;
+  if (typeof priceRaw === "number") event.price = priceRaw;
 
   if (imageEventNew && imageEventNew.size > 0) {
     const uploaded = await saveImage(imageEventNew);
@@ -240,28 +256,25 @@ export const joinEvent = async (c: Context) => {
     return c.json({ message: "Invalid event id" }, 400);
   }
 
-  const event = await Event.findByPk(eventId);
-  if (!event) {
-    return c.json({ message: "Event not found!" }, 404);
+  try {
+    await joinEventService(userId, eventId);
+    return c.json(
+      {
+        message: "Success joined",
+      },
+      200,
+    );
+  } catch (error: any) {
+    if (error.message === "EVENT_NOT_FOUND") {
+      return c.json({ message: "Event not found" }, 404);
+    }
+
+    if (error.message === "USER_ALREADY_JOINED") {
+      return c.json({ message: "User already joined" }, 400);
+    }
+
+    return c.json({ message: "Internal server error!" }, 500);
   }
-
-  const exits = await EventParticipantModel.findOne({
-    where: {
-      userId,
-      eventId,
-    },
-  });
-
-  if (exits) {
-    return c.json({ message: "User already joined!" }, 400);
-  }
-
-  await EventParticipantModel.create({
-    userId: authUserId.id,
-    eventId: eventId,
-  });
-
-  return c.json({ message: "Success to join this event" }, 201);
 };
 
 export const getEventById = async (c: Context) => {
@@ -288,22 +301,6 @@ export const getEventBySlug = async (c: Context) => {
       404,
     );
   }
-
-  return c.json(result);
-};
-
-export const statusCount = async (c: Context) => {
-  const result = await EventStatus.findAll({
-    attributes: ["id", "name", [fn("COUNT", col("Events.id")), "total"]],
-    include: [
-      {
-        model: Event,
-        attributes: [],
-        as: "events",
-      },
-    ],
-    group: ["EventStatus.id"],
-  });
 
   return c.json(result);
 };

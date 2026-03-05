@@ -8,7 +8,6 @@ import {
   getParticipantsMonthlyChart,
   getUpcomingEventsController,
   joinEvent,
-  statusCount,
   updateEvent,
 } from "../controllers/event.controllers";
 import { authMiddleware } from "../middleware/auth.middleware";
@@ -24,7 +23,6 @@ eventRoute.post("/:id/join", authMiddleware, joinEvent);
 eventRoute.get("/:id", getEventById);
 eventRoute.get("/:id/participants", getEventParticipants);
 eventRoute.get("/slug/:slug", getEventBySlug);
-eventRoute.get("/status/count", statusCount);
 eventRoute.get("/charts/monthly", getEventMonthlyChart);
 eventRoute.get("/dashboard/participants/monthly", getParticipantsMonthlyChart);
 

@@ -7,6 +7,7 @@ import mentorRoute from "./routes/mentor.route";
 import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
 import statusRoute from "./routes/status.route";
+import "./jobs/eventStatus.job";
 
 const app = new Hono();
 

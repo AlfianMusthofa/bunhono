@@ -5,6 +5,7 @@ import { EventStatus } from "../models/eventStatus.model";
 import { Mentor } from "../models/mentor.model";
 import { EventParticipantModel } from "../models/eventParticipant.model";
 import { Op, Sequelize } from "sequelize";
+import { saveImage } from "../utils/upload";
 
 interface EventProps {
   limit?: number;
@@ -74,7 +75,7 @@ export const getAllEventsFunction = async ({
       ],
     },
     group: ["Event.id", "Category.id", "Mentor.id", "status.id"],
-    order: [["startAt", "DESC"]],
+    order: [["startAt", "ASC"]],
     limit,
     offset,
     subQuery: false,
@@ -244,4 +245,128 @@ export const getUpcomingEvents = async ({ limit = 5 }: { limit?: number }) => {
   });
 
   return events;
+};
+
+export const joinEventService = async (userId: number, eventId: number) => {
+  const event = await Event.findByPk(eventId);
+  if (!event) {
+    throw new Error("EVENT_NOT_FOUND");
+  }
+  const exist = await EventParticipantModel.findOne({
+    where: { userId, eventId },
+  });
+  if (exist) {
+    throw new Error("USER_ALREADY_JOINED");
+  }
+  await EventParticipantModel.create({ userId, eventId });
+  return true;
+};
+
+type UpdateEventInput = {
+  id: number;
+  title?: string;
+  location?: string;
+  description?: string;
+  startAt?: Date;
+  endAt?: Date;
+  imageEventNew?: File;
+  statusIdRaw?: number;
+  categoryIdRaw?: number;
+  mentorIdRaw?: number;
+  capacityRaw?: number;
+  meetingLinkRaw?: string;
+  priceRaw?: number;
+  priceTypeRaw?: string;
+  locationTypeRaw?: string;
+};
+
+export const updateEventService = async (input: UpdateEventInput) => {
+  const {
+    id,
+    title,
+    location,
+    description,
+    startAt,
+    endAt,
+    imageEventNew,
+    statusIdRaw,
+    mentorIdRaw,
+    capacityRaw,
+    categoryIdRaw,
+    meetingLinkRaw,
+    priceRaw,
+    priceTypeRaw,
+    locationTypeRaw,
+  } = input;
+
+  if (!startAt && !endAt) {
+    throw new Error("STARTAT_ENDAT_REQUIRED");
+  }
+
+  const event = await Event.findByPk(id);
+
+  if (!event) {
+    throw new Error("EVENT_NOT_FOUND");
+  }
+
+  if (typeof title === "string") event.title = title;
+  if (typeof location === "string") event.location = location;
+  if (typeof description === "string") event.description = description;
+  if (typeof startAt === "string") event.startAt = startAt;
+  if (typeof endAt === "string") event.endAt = endAt;
+  if (typeof meetingLinkRaw === "string") event.meetingLink = meetingLinkRaw;
+  if (typeof priceRaw === "number") event.price = priceRaw;
+
+  if (imageEventNew && imageEventNew.size > 0) {
+    const uploaded = await saveImage(imageEventNew);
+    event.image = uploaded.secure_url;
+  }
+
+  if (statusIdRaw !== undefined && statusIdRaw !== null) {
+    const statusIdNew = Number(statusIdRaw);
+    if (Number.isNaN(statusIdNew)) {
+      throw new Error("Status Id tidak valid");
+    }
+    event.statusId = statusIdNew;
+  }
+
+  if (categoryIdRaw !== undefined && categoryIdRaw !== null) {
+    const categoryIdNew = Number(categoryIdRaw);
+    if (Number.isNaN(categoryIdNew)) {
+      throw new Error("Category Id tidak valid");
+    }
+    event.categoryId = categoryIdNew;
+  }
+
+  if (mentorIdRaw !== undefined && mentorIdRaw !== null) {
+    const mentorIdNew = Number(mentorIdRaw);
+    if (Number.isNaN(mentorIdNew)) {
+      throw new Error("Mentor Id tidak valid");
+    }
+    event.mentorId = mentorIdNew;
+  }
+
+  if (capacityRaw !== undefined && capacityRaw !== null) {
+    const capacityNew = Number(capacityRaw);
+    if (Number.isNaN(capacityNew)) {
+      throw new Error("Capacity tidak valid");
+    }
+    event.capacity = capacityNew;
+  }
+
+  if (typeof priceTypeRaw === "string" && priceTypeRaw !== "") {
+    if (!["free", "paid"].includes(priceTypeRaw)) {
+      throw new Error("PriceType tidak valid");
+    }
+    event.priceType = priceTypeRaw as "free" | "paid";
+  }
+
+  if (typeof locationTypeRaw === "string" && locationTypeRaw !== "") {
+    if (!["offline", "online"].includes(locationTypeRaw)) {
+      throw new Error("locationType tidak valid");
+    }
+    event.locationType = locationTypeRaw as "offline" | "online";
+  }
+
+  await event.save();
 };
