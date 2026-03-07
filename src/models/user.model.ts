@@ -7,6 +7,7 @@ export class User extends Model {
   declare email: string;
   declare password: string;
   declare image: string | null;
+  declare Events?: Event;
 }
 
 User.init(

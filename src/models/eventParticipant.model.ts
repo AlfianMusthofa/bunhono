@@ -1,10 +1,12 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/database";
+import type { User } from "./user.model";
 
 export class EventParticipantModel extends Model {
   declare id: number;
   declare userId: number;
   declare eventId: number;
+  declare User?: User;
 }
 
 EventParticipantModel.init(

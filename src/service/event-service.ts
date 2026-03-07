@@ -6,6 +6,8 @@ import { Mentor } from "../models/mentor.model";
 import { EventParticipantModel } from "../models/eventParticipant.model";
 import { Op, Sequelize } from "sequelize";
 import { saveImage } from "../utils/upload";
+import { User } from "../models/user.model";
+import { Certificate } from "../models/certificate.model";
 
 interface EventProps {
   limit?: number;
@@ -65,6 +67,14 @@ export const getAllEventsFunction = async ({
         model: EventParticipantModel,
         attributes: [],
       },
+      {
+        model: Certificate,
+        attributes: ["id", "templatePath", "createdAt"],
+        where: {
+          participantId: null,
+        },
+        required: false,
+      },
     ],
     attributes: {
       include: [
@@ -74,7 +84,13 @@ export const getAllEventsFunction = async ({
         ],
       ],
     },
-    group: ["Event.id", "Category.id", "Mentor.id", "status.id"],
+    group: [
+      "Event.id",
+      "Category.id",
+      "Mentor.id",
+      "status.id",
+      "Certificates.id",
+    ],
     order: [["startAt", "ASC"]],
     limit,
     offset,
@@ -134,10 +150,28 @@ export const getEventByIdFunction = async ({ id }: EventProps) => {
       },
       {
         model: EventParticipantModel,
-        attributes: [],
+        attributes: ["id", "createdAt"],
+        include: [
+          {
+            model: User,
+            attributes: ["id", "name", "email"],
+          },
+        ],
+      },
+      {
+        model: Certificate,
+        attributes: ["templatePath"],
       },
     ],
-    group: ["Event.id", "Category.id", "Mentor.id"],
+    group: [
+      "Event.id",
+      "Category.id",
+      "Mentor.id",
+      "status.id",
+      "EventParticipantModels.id",
+      "EventParticipantModels->User.id",
+      "Certificates.id",
+    ],
   });
 
   return event;

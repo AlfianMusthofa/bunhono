@@ -21,9 +21,9 @@ export const login = async (c: Context) => {
   }
 
   const match = await bcrypt.compare(data.password, user.password);
-
+  console.log(match);
   if (!match) {
-    return c.json({ message: "Email or Password Invalid!" }, 401);
+    return c.json({ message: "Password Invalid!" }, 401);
   }
 
   const payload = {

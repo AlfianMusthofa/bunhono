@@ -5,6 +5,7 @@ import { User } from "./user.model";
 import { EventParticipantModel } from "./eventParticipant.model";
 import { RefreshToken } from "./refreshToken.model";
 import { EventStatus } from "./eventStatus.model";
+import { Certificate } from "./certificate.model";
 
 Category.hasMany(Event, {
   foreignKey: "categoryId",
@@ -56,5 +57,21 @@ Event.hasMany(EventParticipantModel, {
 EventParticipantModel.belongsTo(Event, {
   foreignKey: "eventId",
 });
+
+EventParticipantModel.belongsTo(User, {
+  foreignKey: "userId",
+});
+
+User.hasMany(EventParticipantModel, {
+  foreignKey: "userId",
+});
+
+Event.hasMany(Certificate, { foreignKey: "eventId" });
+
+Certificate.belongsTo(Event, { foreignKey: "eventId" });
+
+EventParticipantModel.hasOne(Certificate, { foreignKey: "participantId" });
+
+Certificate.belongsTo(EventParticipantModel, { foreignKey: "participantId" });
 
 export { Event, Mentor, Category };

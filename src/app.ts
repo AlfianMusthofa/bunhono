@@ -7,6 +7,8 @@ import mentorRoute from "./routes/mentor.route";
 import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
 import statusRoute from "./routes/status.route";
+import certif from "./routes/certificate.route";
+import report from "./routes/report.route";
 import "./jobs/eventStatus.job";
 
 const app = new Hono();
@@ -21,5 +23,7 @@ app.route("/events", eventRoute);
 app.route("/category", categoryRoute);
 app.route("/mentors", mentorRoute);
 app.route("/status", statusRoute);
+app.route("/certificate", certif);
+app.route("/report", report);
 
 export default app;

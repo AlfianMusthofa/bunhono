@@ -7,6 +7,9 @@ import {
   registerUser,
 } from "../service/user-service";
 import { saveImage } from "../utils/upload";
+import { EventStatus } from "../models/eventStatus.model";
+import bcrypt from "bcryptjs";
+import { Certificate } from "../models/certificate.model";
 
 export const getUser = async (c: Context) => {
   const search = c.req.query("search");
@@ -36,10 +39,12 @@ export const registerUserNew = async (c: Context) => {
     imagePath = uploaded.secure_url;
   }
 
+  const hashedPassword = await bcrypt.hash(password, 10);
+
   const user = await User.create({
     name,
     email,
-    password,
+    password: hashedPassword,
     image: imagePath,
   });
 
@@ -89,31 +94,63 @@ export const getUserById = async (c: Context) => {
 
 export const userEventHistory = async (c: Context) => {
   const authUser = c.get("user") as { id: number };
+  const page = Number(c.req.query("page")) || 1;
+  const limit = Number(c.req.query("limit")) || 10;
+  const offset = (page - 1) * limit;
 
   if (!authUser?.id || isNaN(authUser.id)) {
     return c.json({ message: "Invalid id user" }, 401);
   }
 
   const user = await User.findByPk(authUser.id, {
-    attributes: ["id", "name"],
-    include: {
-      model: Event,
-      attributes: ["id", "title", "location"],
-      through: {
-        attributes: [],
-      },
-    },
+    attributes: ["id", "name", "image"],
   });
 
   if (!user) {
     return c.json({ message: "History not found" }, 404);
   }
 
+  const { count, rows } = await Event.findAndCountAll({
+    include: [
+      {
+        model: User,
+        where: { id: authUser.id },
+        attributes: [],
+        through: { attributes: [] },
+      },
+      {
+        model: EventStatus,
+        attributes: ["name"],
+        as: "status",
+      },
+      {
+        model: Certificate,
+        attributes: ["id", "templatePath"],
+        where: {
+          participantId: null,
+        },
+        required: false,
+      },
+    ],
+    limit,
+    offset,
+    order: [["startAt", "ASC"]],
+  });
+
+  const totalPage = Math.ceil(count / limit);
+
   return c.json({
     user: {
       id: user.id,
       name: user.name,
+      image: user.image,
     },
-    Events: user.Events,
+    data: rows,
+    meta: {
+      total: count,
+      page,
+      limit,
+      totalPage,
+    },
   });
 };
