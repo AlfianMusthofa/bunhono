@@ -8,6 +8,9 @@ import { Op, Sequelize } from "sequelize";
 import { saveImage } from "../utils/upload";
 import { User } from "../models/user.model";
 import { Certificate } from "../models/certificate.model";
+import { generateSlug } from "../utils/slug";
+import { BadRequestError } from "../errors/BadRequestError";
+import { NotFoundError } from "../errors/NotFoundError";
 
 interface EventProps {
   limit?: number;
@@ -284,123 +287,112 @@ export const getUpcomingEvents = async ({ limit = 5 }: { limit?: number }) => {
 export const joinEventService = async (userId: number, eventId: number) => {
   const event = await Event.findByPk(eventId);
   if (!event) {
-    throw new Error("EVENT_NOT_FOUND");
+    throw new NotFoundError("Event not found!");
   }
   const exist = await EventParticipantModel.findOne({
     where: { userId, eventId },
   });
   if (exist) {
-    throw new Error("USER_ALREADY_JOINED");
+    throw new BadRequestError("User already joined!");
   }
   await EventParticipantModel.create({ userId, eventId });
   return true;
 };
 
-type UpdateEventInput = {
-  id: number;
-  title?: string;
-  location?: string;
-  description?: string;
-  startAt?: Date;
-  endAt?: Date;
-  imageEventNew?: File;
-  statusIdRaw?: number;
-  categoryIdRaw?: number;
-  mentorIdRaw?: number;
-  capacityRaw?: number;
-  meetingLinkRaw?: string;
-  priceRaw?: number;
-  priceTypeRaw?: string;
-  locationTypeRaw?: string;
-};
+export const CreateEventService = async (
+  title: string,
+  location: string,
+  description: string,
+  startAtRaw: string,
+  endAtRaw: string,
+  mentorId: number,
+  statusId: number,
+  categoryId: number,
+  capacity: number,
+  image: File,
+  locationType: string,
+  meetingLink: string,
+  priceType: string,
+  price: number,
+) => {
+  const slug = generateSlug(title);
 
-export const updateEventService = async (input: UpdateEventInput) => {
-  const {
-    id,
+  if (!title) {
+    throw new BadRequestError("Title is required!");
+  }
+
+  if (!description) {
+    throw new BadRequestError("Description is required!");
+  }
+
+  if (!locationType || !["offline", "online"].includes(locationType)) {
+    throw new BadRequestError("Location type is required!");
+  }
+
+  if (!priceType || !["free", "paid"].includes(priceType)) {
+    throw new BadRequestError("Price type is required!");
+  }
+
+  if (locationType === "offline" && !location) {
+    throw new BadRequestError("Location is required!");
+  }
+
+  if (locationType === "online" && !meetingLink) {
+    throw new BadRequestError("Meeting link is required!");
+  }
+
+  if (priceType == "paid" && !price) {
+    throw new BadRequestError("Price is required!");
+  }
+
+  if (!startAtRaw || typeof startAtRaw !== "string") {
+    throw new BadRequestError("StartAt is required!");
+  }
+
+  if (!endAtRaw || typeof endAtRaw !== "string") {
+    throw new BadRequestError("EndAt is required!");
+  }
+
+  const startAt = new Date(startAtRaw);
+  const endAt = new Date(endAtRaw);
+
+  if (isNaN(endAt.getTime()) || isNaN(startAt.getTime())) {
+    throw new BadRequestError("Datetime is invalid!");
+  }
+
+  const finalLocation = locationType === "offline" ? location : null;
+  const finalMeetingLink = locationType === "online" ? meetingLink : null;
+
+  let imagePath;
+
+  if (image) {
+    if (!image.type.startsWith("image/")) {
+      throw new BadRequestError("File must be image!");
+    }
+    if (image.size > 2_000_000) {
+      throw new BadRequestError("Image max size 2MB");
+    }
+    const uploaded = await saveImage(image);
+    imagePath = uploaded.secure_url;
+  }
+
+  const event = await Event.create({
     title,
-    location,
     description,
     startAt,
     endAt,
-    imageEventNew,
-    statusIdRaw,
-    mentorIdRaw,
-    capacityRaw,
-    categoryIdRaw,
-    meetingLinkRaw,
-    priceRaw,
-    priceTypeRaw,
-    locationTypeRaw,
-  } = input;
+    locationType,
+    location: finalLocation,
+    meetingLink: finalMeetingLink,
+    mentorId,
+    categoryId,
+    image: imagePath,
+    slug,
+    statusId,
+    capacity,
+    priceType,
+    price,
+  });
 
-  if (!startAt && !endAt) {
-    throw new Error("STARTAT_ENDAT_REQUIRED");
-  }
-
-  const event = await Event.findByPk(id);
-
-  if (!event) {
-    throw new Error("EVENT_NOT_FOUND");
-  }
-
-  if (typeof title === "string") event.title = title;
-  if (typeof location === "string") event.location = location;
-  if (typeof description === "string") event.description = description;
-  if (typeof startAt === "string") event.startAt = startAt;
-  if (typeof endAt === "string") event.endAt = endAt;
-  if (typeof meetingLinkRaw === "string") event.meetingLink = meetingLinkRaw;
-  if (typeof priceRaw === "number") event.price = priceRaw;
-
-  if (imageEventNew && imageEventNew.size > 0) {
-    const uploaded = await saveImage(imageEventNew);
-    event.image = uploaded.secure_url;
-  }
-
-  if (statusIdRaw !== undefined && statusIdRaw !== null) {
-    const statusIdNew = Number(statusIdRaw);
-    if (Number.isNaN(statusIdNew)) {
-      throw new Error("Status Id tidak valid");
-    }
-    event.statusId = statusIdNew;
-  }
-
-  if (categoryIdRaw !== undefined && categoryIdRaw !== null) {
-    const categoryIdNew = Number(categoryIdRaw);
-    if (Number.isNaN(categoryIdNew)) {
-      throw new Error("Category Id tidak valid");
-    }
-    event.categoryId = categoryIdNew;
-  }
-
-  if (mentorIdRaw !== undefined && mentorIdRaw !== null) {
-    const mentorIdNew = Number(mentorIdRaw);
-    if (Number.isNaN(mentorIdNew)) {
-      throw new Error("Mentor Id tidak valid");
-    }
-    event.mentorId = mentorIdNew;
-  }
-
-  if (capacityRaw !== undefined && capacityRaw !== null) {
-    const capacityNew = Number(capacityRaw);
-    if (Number.isNaN(capacityNew)) {
-      throw new Error("Capacity tidak valid");
-    }
-    event.capacity = capacityNew;
-  }
-
-  if (typeof priceTypeRaw === "string" && priceTypeRaw !== "") {
-    if (!["free", "paid"].includes(priceTypeRaw)) {
-      throw new Error("PriceType tidak valid");
-    }
-    event.priceType = priceTypeRaw as "free" | "paid";
-  }
-
-  if (typeof locationTypeRaw === "string" && locationTypeRaw !== "") {
-    if (!["offline", "online"].includes(locationTypeRaw)) {
-      throw new Error("locationType tidak valid");
-    }
-    event.locationType = locationTypeRaw as "offline" | "online";
-  }
-
-  await event.save();
+  return event;
 };

@@ -2,6 +2,9 @@ import bcrypt from "bcryptjs";
 import { Event } from "../models/event.model";
 import { User } from "../models/user.model";
 import { Op } from "sequelize";
+import { EventStatus } from "../models/eventStatus.model";
+import { Certificate } from "../models/certificate.model";
+import { saveImage } from "../utils/upload";
 
 export const getAllUsers = async (
   search?: string,
@@ -49,26 +52,109 @@ export const getSingleUserById = async (id: number) => {
   });
 };
 
-export const registerUser = async (data: {
-  name: string;
-  email: string;
-  password: string;
-}) => {
-  const exist = await User.findOne({
-    where: { email: data.email },
-  });
+export const UserEventHistoryService = async (
+  search?: string,
+  page: number = 1,
+  limit: number = 10,
+  id?: number,
+) => {
+  const offset = (page - 1) * limit;
+  const where = search
+    ? {
+        title: {
+          [Op.like]: `%${search}%`,
+        },
+      }
+    : {};
 
-  if (exist) {
-    throw new Error("EMAIL_EXISTS");
+  if (!id || isNaN(id)) {
+    throw new Error("INVALID_ID");
   }
 
-  const hashed = await bcrypt.hash(data.password, 10);
-
-  const register = await User.create({
-    name: data.name,
-    email: data.email,
-    password: hashed,
+  const user = await User.findByPk(id, {
+    attributes: ["id", "name", "image"],
   });
 
-  return register;
+  if (!user) {
+    throw new Error("HISTORY_NOT_FOUND");
+  }
+
+  const { rows, count } = await Event.findAndCountAll({
+    include: [
+      {
+        model: User,
+        where: { id: id },
+        attributes: [],
+        through: { attributes: [] },
+      },
+      {
+        model: EventStatus,
+        attributes: ["name"],
+        as: "status",
+      },
+      {
+        model: Certificate,
+        attributes: ["id", "templatePath"],
+        where: {
+          participantId: null,
+        },
+        required: false,
+      },
+    ],
+    where,
+    limit,
+    offset,
+    order: [["startAt", "ASC"]],
+  });
+  const totalPage = Math.ceil(count / limit);
+
+  return {
+    user: {
+      id: user?.id,
+      name: user?.name,
+      image: user?.image,
+    },
+    data: rows,
+    meta: {
+      total: count,
+      page,
+      limit,
+      totalPage,
+    },
+  };
+};
+
+export const UpdateUserService = async (
+  id?: number,
+  name?: string,
+  email?: string,
+  password?: string,
+  image?: File,
+) => {
+  if (!id || isNaN(id)) {
+    throw new Error("INVALID_ID");
+  }
+
+  const user = await User.findByPk(id);
+
+  if (!user) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  if (name) user.name = name;
+  if (email) user.email = email;
+
+  if (password) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+  }
+
+  if (image && image.size > 0) {
+    const uploaded = await saveImage(image);
+    user.image = uploaded.secure_url;
+  }
+
+  await user.save();
+
+  return user;
 };

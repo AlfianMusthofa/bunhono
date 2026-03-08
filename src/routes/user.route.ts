@@ -3,6 +3,7 @@ import {
   getUser,
   getUserById,
   registerUserNew,
+  updateUserById,
   updateUserNew,
   userEventHistory,
 } from "../controllers/user.controllers";
@@ -13,6 +14,7 @@ const userRoute = new Hono();
 userRoute.get("/", getUser);
 userRoute.post("/", registerUserNew);
 userRoute.patch("/", authMiddleware, updateUserNew);
+userRoute.patch("/:id", updateUserById);
 userRoute.get("/:id", authMiddleware, getUserById);
 userRoute.get("/me/history", authMiddleware, userEventHistory);
 

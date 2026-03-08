@@ -29,6 +29,7 @@ export const login = async (c: Context) => {
   const payload = {
     id: user.id,
     email: user.email,
+    image: user.image,
   };
 
   const accessToken = signToken(payload);
@@ -51,6 +52,7 @@ export const login = async (c: Context) => {
       id: user.id,
       name: user.name,
       email: user.email,
+      image: user.image,
     },
     accessToken,
     refreshToken,

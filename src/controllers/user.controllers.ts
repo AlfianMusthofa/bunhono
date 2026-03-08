@@ -1,15 +1,13 @@
 import type { Context } from "hono";
 import { User } from "../models/user.model";
-import { Event } from "../models/event.model";
 import {
   getAllUsers,
   getSingleUserById,
-  registerUser,
+  UpdateUserService,
+  UserEventHistoryService,
 } from "../service/user-service";
 import { saveImage } from "../utils/upload";
-import { EventStatus } from "../models/eventStatus.model";
 import bcrypt from "bcryptjs";
-import { Certificate } from "../models/certificate.model";
 
 export const getUser = async (c: Context) => {
   const search = c.req.query("search");
@@ -25,27 +23,21 @@ export const registerUserNew = async (c: Context) => {
   const name = formdata.get("name") as string;
   const email = formdata.get("email") as string;
   const password = formdata.get("password") as string;
-  const imageFile = formdata.get("image") as File | null;
-  let imagePath: string | null = null;
-
-  if (imageFile) {
-    if (!imageFile.type.startsWith("image/")) {
-      return c.json({ message: "File must be an image" }, 400);
-    }
-    if (imageFile.size > 1_000_000) {
-      return c.json({ message: "Image size max 2MB" }, 400);
-    }
-    const uploaded = await saveImage(imageFile);
-    imagePath = uploaded.secure_url;
-  }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+
+  const existingEmail = await User.findOne({
+    where: { email },
+  });
+
+  if (existingEmail) {
+    return c.json({ message: "Email already exist" }, 400);
+  }
 
   const user = await User.create({
     name,
     email,
     password: hashedPassword,
-    image: imagePath,
   });
 
   return c.json(user, 201);
@@ -57,28 +49,32 @@ export const updateUserNew = async (c: Context) => {
   const name = formdata.get("name") as string;
   const email = formdata.get("email") as string;
   const password = formdata.get("password") as string;
-  const imageFile = formdata.get("image") as File | null;
+  const imageFile = formdata.get("image") as File;
 
-  const user = await User.findByPk(authUser.id);
-  if (!user) {
-    return c.json({ message: "User not found kocak" }, 404);
+  try {
+    const user = await UpdateUserService(
+      authUser.id,
+      name,
+      email,
+      password,
+      imageFile,
+    );
+
+    return c.json({
+      message: "User has been updated",
+      user,
+    });
+  } catch (error: any) {
+    if (error.message === "INVALID_id") {
+      return c.json({ message: "Invalid Id" }, 400);
+    }
+
+    if (error.message === "USER_NOT_FOUND") {
+      return c.json({ message: "User not found" }, 404);
+    }
+
+    console.log(error);
   }
-
-  if (typeof name === "string") user.name = name;
-  if (typeof email === "string") user.email = email;
-  if (typeof password === "string") user.password = email;
-
-  if (imageFile && imageFile.size > 0) {
-    const uploaded = await saveImage(imageFile);
-    user.image = uploaded.secure_url;
-  }
-
-  await user.save();
-
-  return c.json({
-    message: "User has been updated",
-    user,
-  });
 };
 
 export const getUserById = async (c: Context) => {
@@ -96,61 +92,56 @@ export const userEventHistory = async (c: Context) => {
   const authUser = c.get("user") as { id: number };
   const page = Number(c.req.query("page")) || 1;
   const limit = Number(c.req.query("limit")) || 10;
-  const offset = (page - 1) * limit;
+  const search = c.req.query("search");
 
-  if (!authUser?.id || isNaN(authUser.id)) {
-    return c.json({ message: "Invalid id user" }, 401);
-  }
-
-  const user = await User.findByPk(authUser.id, {
-    attributes: ["id", "name", "image"],
-  });
-
-  if (!user) {
-    return c.json({ message: "History not found" }, 404);
-  }
-
-  const { count, rows } = await Event.findAndCountAll({
-    include: [
-      {
-        model: User,
-        where: { id: authUser.id },
-        attributes: [],
-        through: { attributes: [] },
-      },
-      {
-        model: EventStatus,
-        attributes: ["name"],
-        as: "status",
-      },
-      {
-        model: Certificate,
-        attributes: ["id", "templatePath"],
-        where: {
-          participantId: null,
-        },
-        required: false,
-      },
-    ],
-    limit,
-    offset,
-    order: [["startAt", "ASC"]],
-  });
-
-  const totalPage = Math.ceil(count / limit);
-
-  return c.json({
-    user: {
-      id: user.id,
-      name: user.name,
-      image: user.image,
-    },
-    data: rows,
-    meta: {
-      total: count,
+  try {
+    const history = await UserEventHistoryService(
+      search,
       page,
       limit,
-      totalPage,
-    },
+      authUser.id,
+    );
+    return c.json(history);
+  } catch (error: any) {
+    if (error.message === "HISTORY_NOT_FOUND") {
+      return c.json({ message: "History not found" }, 404);
+    }
+    if (error.message === "INVALID_ID") {
+      return c.json({ message: "Invalid Id User" }, 404);
+    }
+    console.log(error);
+  }
+};
+
+export const updateUserById = async (c: Context) => {
+  const userId = Number(c.req.param("id"));
+  const formData = await c.req.formData();
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const image = formData.get("image") as File;
+
+  const user = await User.findByPk(userId);
+
+  if (!user) {
+    return c.json({ message: "User not found" }, 404);
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  if (typeof name === "string") user.name = name;
+  if (typeof email === "string") user.email = email;
+  if (typeof password === "string") user.password = hashedPassword;
+
+  if (image && image.size > 0) {
+    const upload = await saveImage(image);
+    user.image = upload.secure_url;
+  }
+
+  await user.save();
+
+  return c.json({
+    message: "User has been updated",
+    user,
   });
 };

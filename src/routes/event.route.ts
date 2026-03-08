@@ -18,7 +18,7 @@ const eventRoute = new Hono();
 eventRoute.post("/", createEvent);
 eventRoute.get("/", getAllEvents);
 eventRoute.get("/upcoming", getUpcomingEventsController);
-eventRoute.put("/id/:id", updateEvent);
+eventRoute.patch("/id/:id", updateEvent);
 eventRoute.post("/:id/join", authMiddleware, joinEvent);
 eventRoute.get("/:id", getEventById);
 eventRoute.get("/:id/participants", getEventParticipants);

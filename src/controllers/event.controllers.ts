@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import { Event } from "../models/event.model";
 import { saveImage } from "../utils/upload";
 import {
+  CreateEventService,
   getAllEventsFunction,
   getEventByIdFunction,
   getEventBySlugService,
@@ -10,7 +11,6 @@ import {
   getUpcomingEvents,
   joinEventService,
 } from "../service/event-service";
-import { generateSlug } from "../utils/slug";
 
 export const createEvent = async (c: Context) => {
   const formData = await c.req.formData();
@@ -18,107 +18,40 @@ export const createEvent = async (c: Context) => {
   const title = formData.get("title") as string;
   const location = formData.get("location") as string;
   const description = formData.get("description") as string;
-  const startAtRaw = formData.get("startAt");
-  const endAtRaw = formData.get("endAt");
-  const mentorId = formData.get("mentorId");
-  const categoryId = formData.get("categoryId");
-  const statusId = formData.get("statusId");
-  const capacity = formData.get("capacity");
-  const imageFile = formData.get("image") as File | null;
+  const startAtRaw = formData.get("startAt") as string;
+  const endAtRaw = formData.get("endAt") as string;
+  const mentorId = Number(formData.get("mentorId"));
+  const categoryId = Number(formData.get("categoryId"));
+  const statusId = Number(formData.get("statusId"));
+  const capacity = Number(formData.get("capacity"));
+  const imageFile = formData.get("image") as File;
   const locationType = formData.get("locationType") as string;
-  const meetingLink = formData.get("meetingLink") as string | null;
+  const meetingLink = formData.get("meetingLink") as string;
   const priceType = formData.get("priceType") as string;
-  const price = formData.get("price");
+  const price = Number(formData.get("price"));
 
-  const slug = generateSlug(title);
-
-  if (!title) {
-    return c.json({ message: "Title is required" }, 400);
-  }
-
-  if (!locationType || !["offline", "online"].includes(locationType)) {
-    return c.json({ message: "locationType must be offline or online" }, 400);
-  }
-
-  if (!priceType || !["free", "paid"].includes(priceType)) {
-    return c.json({ message: "PriceType must be free or paid" }, 400);
-  }
-
-  if (locationType === "offline" && !location) {
-    return c.json({ message: "Location is required for offline event" }, 400);
-  }
-
-  if (locationType === "online" && !meetingLink) {
-    return c.json(
-      { message: "Meeting link is required for online event" },
-      400,
+  try {
+    const event = await CreateEventService(
+      title,
+      location,
+      description,
+      startAtRaw,
+      endAtRaw,
+      mentorId,
+      statusId,
+      categoryId,
+      capacity,
+      imageFile,
+      locationType,
+      meetingLink,
+      priceType,
+      price,
     );
+
+    return c.json(event);
+  } catch (error: any) {
+    console.log(error);
   }
-
-  if (priceType === "paid" && !price) {
-    return c.json(
-      {
-        message: "Price is required for paid event",
-      },
-      400,
-    );
-  }
-
-  if (!startAtRaw || typeof startAtRaw !== "string") {
-    return c.json({ message: "startAt is required" }, 400);
-  }
-
-  if (!endAtRaw || typeof endAtRaw !== "string") {
-    return c.json({ message: "endAt is required" }, 400);
-  }
-
-  const startAt = new Date(startAtRaw);
-  if (isNaN(startAt.getTime())) {
-    return c.json({ message: "Invalid startAt date" }, 400);
-  }
-
-  const endAt = new Date(endAtRaw);
-  if (isNaN(endAt.getTime())) {
-    return c.json({ message: "Invalid endAt date" }, 400);
-  }
-
-  let imagePath: string | null = null;
-
-  const finalLocation = locationType === "offline" ? location : null;
-  const finalMeetingLink = locationType === "online" ? meetingLink : null;
-
-  if (imageFile) {
-    if (!imageFile.type.startsWith("image/")) {
-      return c.json({ message: "File must be an image" }, 400);
-    }
-
-    if (imageFile.size > 2_000_000) {
-      return c.json({ message: "Image max size is 2MB" }, 400);
-    }
-
-    const uploaded = await saveImage(imageFile);
-    imagePath = uploaded.secure_url;
-  }
-
-  const event = await Event.create({
-    title,
-    description,
-    startAt,
-    endAt,
-    locationType,
-    location: finalLocation,
-    meetingLink: finalMeetingLink,
-    mentorId,
-    categoryId,
-    image: imagePath,
-    slug: slug,
-    statusId,
-    capacity,
-    priceType,
-    price,
-  });
-
-  return c.json(event, 201);
 };
 
 export const getAllEvents = async (c: Context) => {
