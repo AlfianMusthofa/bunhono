@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import {
+  countUserHistory,
   createEvent,
   getAllEvents,
   getEventById,
@@ -25,5 +26,6 @@ eventRoute.get("/:id/participants", getEventParticipants);
 eventRoute.get("/slug/:slug", getEventBySlug);
 eventRoute.get("/charts/monthly", getEventMonthlyChart);
 eventRoute.get("/dashboard/participants/monthly", getParticipantsMonthlyChart);
+eventRoute.get("/totalHistory", authMiddleware, countUserHistory);
 
 export default eventRoute;

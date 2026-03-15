@@ -94,7 +94,7 @@ export const getAllEventsFunction = async ({
       "status.id",
       "Certificates.id",
     ],
-    order: [["startAt", "ASC"]],
+    order: [["startAt", "DESC"]],
     limit,
     offset,
     subQuery: false,
@@ -393,6 +393,70 @@ export const CreateEventService = async (
     priceType,
     price,
   });
+
+  return event;
+};
+
+export const UpdateEventService = async (
+  id: number,
+  title: string,
+  location: string,
+  description: string,
+  startAt: string,
+  endAt: string,
+  image: File,
+  statusId: number,
+  mentorId: number,
+  categoryId: number,
+  capacity: number,
+  locationType: string,
+  meetingLink: string,
+  priceType: string,
+  price: number,
+) => {
+  if (!startAt || !endAt) {
+    throw new BadRequestError("Datetime is required!");
+  }
+
+  const event = await Event.findByPk(id);
+  if (!event) {
+    throw new NotFoundError("Event not found");
+  }
+
+  if (title) event.title = title;
+  if (location) event.location = location;
+  if (description) event.description = description;
+  const startAtNew = new Date(startAt);
+  const endAtNew = new Date(endAt);
+  if (startAt) event.startAt = startAtNew;
+  if (endAt) event.endAt = endAtNew;
+  if (meetingLink) event.meetingLink = meetingLink;
+  if (price) event.price = price;
+  if (statusId) event.statusId = statusId;
+  if (categoryId) event.categoryId = categoryId;
+  if (mentorId) event.mentorId = mentorId;
+  if (capacity) event.capacity = capacity;
+
+  if (image && image.size > 0) {
+    const uploaded = await saveImage(image);
+    event.image = uploaded.secure_url;
+  }
+
+  if (typeof priceType === "string" && priceType !== "") {
+    if (!["free", "paid"].includes(priceType)) {
+      throw new BadRequestError("PriceType is not valid!");
+    }
+    event.priceType = priceType as "free" | "paid";
+  }
+
+  if (typeof locationType === "string" && locationType !== "") {
+    if (!["offline", "online"].includes(locationType)) {
+      throw new Error("locationType tidak valid");
+    }
+    event.locationType = locationType as "offline" | "online";
+  }
+
+  await event.save();
 
   return event;
 };

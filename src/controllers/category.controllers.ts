@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { Category } from "../models/category.model";
 import { Event } from "../models/event.model";
+import { GetAllCategoriesService } from "../service/category-service";
 
 export const addCategory = async (c: Context) => {
   const body = await c.req.json();
@@ -17,9 +18,10 @@ export const addCategory = async (c: Context) => {
 };
 
 export const getCategories = async (c: Context) => {
-  const category = await Category.findAll({
-    attributes: ["id", "name"],
-  });
+  const search = c.req.param("search");
+  const page = Number(c.req.query("page")) || 1;
+  const limit = Number(c.req.query("limit")) || 4;
+  const category = await GetAllCategoriesService(search, page, limit);
   return c.json(category);
 };
 

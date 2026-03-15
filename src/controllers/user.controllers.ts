@@ -1,13 +1,12 @@
 import type { Context } from "hono";
-import { User } from "../models/user.model";
 import {
   getAllUsers,
   getSingleUserById,
+  RegisterUserServive,
+  UpdateUserByIdService,
   UpdateUserService,
   UserEventHistoryService,
 } from "../service/user-service";
-import { saveImage } from "../utils/upload";
-import bcrypt from "bcryptjs";
 
 export const getUser = async (c: Context) => {
   const search = c.req.query("search");
@@ -24,23 +23,12 @@ export const registerUserNew = async (c: Context) => {
   const email = formdata.get("email") as string;
   const password = formdata.get("password") as string;
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const existingEmail = await User.findOne({
-    where: { email },
-  });
-
-  if (existingEmail) {
-    return c.json({ message: "Email already exist" }, 400);
+  try {
+    await RegisterUserServive(name, email, password);
+    return c.json({ message: "User has been created!" });
+  } catch (error) {
+    console.log(error);
   }
-
-  const user = await User.create({
-    name,
-    email,
-    password: hashedPassword,
-  });
-
-  return c.json(user, 201);
 };
 
 export const updateUserNew = async (c: Context) => {
@@ -65,14 +53,6 @@ export const updateUserNew = async (c: Context) => {
       user,
     });
   } catch (error: any) {
-    if (error.message === "INVALID_id") {
-      return c.json({ message: "Invalid Id" }, 400);
-    }
-
-    if (error.message === "USER_NOT_FOUND") {
-      return c.json({ message: "User not found" }, 404);
-    }
-
     console.log(error);
   }
 };
@@ -103,12 +83,6 @@ export const userEventHistory = async (c: Context) => {
     );
     return c.json(history);
   } catch (error: any) {
-    if (error.message === "HISTORY_NOT_FOUND") {
-      return c.json({ message: "History not found" }, 404);
-    }
-    if (error.message === "INVALID_ID") {
-      return c.json({ message: "Invalid Id User" }, 404);
-    }
     console.log(error);
   }
 };
@@ -121,27 +95,10 @@ export const updateUserById = async (c: Context) => {
   const password = formData.get("password") as string;
   const image = formData.get("image") as File;
 
-  const user = await User.findByPk(userId);
-
-  if (!user) {
-    return c.json({ message: "User not found" }, 404);
+  try {
+    await UpdateUserByIdService(userId, name, email, password, image);
+    return c.json({ message: "user has been updated" });
+  } catch (error) {
+    console.log(error);
   }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  if (typeof name === "string") user.name = name;
-  if (typeof email === "string") user.email = email;
-  if (typeof password === "string") user.password = hashedPassword;
-
-  if (image && image.size > 0) {
-    const upload = await saveImage(image);
-    user.image = upload.secure_url;
-  }
-
-  await user.save();
-
-  return c.json({
-    message: "User has been updated",
-    user,
-  });
 };

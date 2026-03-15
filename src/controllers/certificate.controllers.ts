@@ -9,6 +9,8 @@ import { Event } from "../models/event.model";
 
 export const uploadCertificateTemplate = async (c: Context) => {
   const eventId = Number(c.req.param("id"));
+  const formData = await c.req.formData();
+  const file = formData.get("template") as File;
 
   const event = await Event.findByPk(eventId);
   if (!event) {
@@ -19,12 +21,9 @@ export const uploadCertificateTemplate = async (c: Context) => {
     return c.json({ message: "Invalid event id" }, 400);
   }
 
-  const formData = await c.req.formData();
-  const file = formData.get("template") as File;
-
-  if (!file) {
-    return c.json({ message: "Template file is required" }, 400);
-  }
+  //   if (!file) {
+  //     return c.json({ message: "Template file is required" }, 400);
+  //   }
 
   const result = await uploadCertificateTemplateService({
     eventId,

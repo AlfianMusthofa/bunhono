@@ -5,6 +5,8 @@ import { Op } from "sequelize";
 import { EventStatus } from "../models/eventStatus.model";
 import { Certificate } from "../models/certificate.model";
 import { saveImage } from "../utils/upload";
+import { NotFoundError } from "../errors/NotFoundError";
+import { BadRequestError } from "../errors/BadRequestError";
 
 export const getAllUsers = async (
   search?: string,
@@ -68,7 +70,7 @@ export const UserEventHistoryService = async (
     : {};
 
   if (!id || isNaN(id)) {
-    throw new Error("INVALID_ID");
+    throw new BadRequestError("Invalid Id!");
   }
 
   const user = await User.findByPk(id, {
@@ -76,7 +78,7 @@ export const UserEventHistoryService = async (
   });
 
   if (!user) {
-    throw new Error("HISTORY_NOT_FOUND");
+    throw new NotFoundError("User not found!");
   }
 
   const { rows, count } = await Event.findAndCountAll({
@@ -132,13 +134,13 @@ export const UpdateUserService = async (
   image?: File,
 ) => {
   if (!id || isNaN(id)) {
-    throw new Error("INVALID_ID");
+    throw new BadRequestError("Invalid Id");
   }
 
   const user = await User.findByPk(id);
 
   if (!user) {
-    throw new Error("USER_NOT_FOUND");
+    throw new NotFoundError("User not found!");
   }
 
   if (name) user.name = name;
@@ -157,4 +159,48 @@ export const UpdateUserService = async (
   await user.save();
 
   return user;
+};
+
+export const RegisterUserServive = async (
+  name: string,
+  email: string,
+  password: string,
+) => {
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const existingEmail = await User.findOne({
+    where: { email },
+  });
+  if (existingEmail) {
+    throw new BadRequestError("Email already exist");
+  }
+  const user = await User.create({
+    name,
+    email,
+    password: hashedPassword,
+  });
+
+  return user;
+};
+
+export const UpdateUserByIdService = async (
+  id: number,
+  name: string,
+  email: string,
+  password: string,
+  image: File,
+) => {
+  const user = await User.findByPk(id);
+  if (!user) {
+    throw new NotFoundError("User not found!");
+  }
+  const hashedPassword = await bcrypt.hash(password, 10);
+  if (name) user.name = name;
+  if (email) user.email = email;
+  if (password) user.password = hashedPassword;
+  if (image && image.size > 0) {
+    const upload = await saveImage(image);
+    user.image = upload.secure_url;
+  }
+  await user.save();
+  return true;
 };

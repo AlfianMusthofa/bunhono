@@ -8,8 +8,8 @@ import { Hono } from "hono";
 
 const categoryRoute = new Hono();
 
-categoryRoute.post("/", addCategory);
 categoryRoute.get("/", getCategories);
+categoryRoute.post("/", addCategory);
 categoryRoute.get("/events", getCategoryWithEvents);
 categoryRoute.get("/:id/events", getCategoryEvents);
 

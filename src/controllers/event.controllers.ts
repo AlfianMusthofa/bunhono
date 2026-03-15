@@ -10,7 +10,9 @@ import {
   getParticipantsMonthlyStats,
   getUpcomingEvents,
   joinEventService,
+  UpdateEventService,
 } from "../service/event-service";
+import { EventParticipantModel } from "../models/eventParticipant.model";
 
 export const createEvent = async (c: Context) => {
   const formData = await c.req.formData();
@@ -86,98 +88,42 @@ export const updateEvent = async (c: Context) => {
   const title = formData.get("title") as string;
   const location = formData.get("location") as string;
   const description = formData.get("description") as string;
-  const startAt = formData.get("startAt") as Date | null;
-  const endAt = formData.get("endAt") as Date | null;
+  const startAt = formData.get("startAt") as string;
+  const endAt = formData.get("endAt") as string;
   const imageEventNew = formData.get("image") as File;
 
-  const statusIdRaw = formData.get("statusId");
-  const categoryIdRaw = formData.get("categoryId");
-  const mentorIdRaw = formData.get("mentorId");
-  const capacityRaw = formData.get("capacity");
-  const meetingLinkRaw = formData.get("meetingLink")?.toString();
-  const priceRaw = formData.get("price");
-  const priceTypeRaw = formData.get("priceType");
-  const locationTypeRaw = formData.get("locationType");
+  const statusIdRaw = Number(formData.get("statusId"));
+  const categoryIdRaw = Number(formData.get("categoryId"));
+  const mentorIdRaw = Number(formData.get("mentorId"));
+  const capacityRaw = Number(formData.get("capacity"));
+  const meetingLinkRaw = formData.get("meetingLink") as string;
+  const priceTypeRaw = formData.get("priceType") as string;
+  const locationTypeRaw = formData.get("locationType") as string;
+  const priceRaw = Number(formData.get("capacity"));
 
-  if (!startAt && !endAt) {
-    return c.json({ message: "Start and end is required" }, 400);
+  try {
+    const event = await UpdateEventService(
+      id,
+      title,
+      location,
+      description,
+      startAt,
+      endAt,
+      imageEventNew,
+      statusIdRaw,
+      mentorIdRaw,
+      categoryIdRaw,
+      capacityRaw,
+      locationTypeRaw,
+      meetingLinkRaw,
+      priceTypeRaw,
+      priceRaw,
+    );
+
+    return c.json(event);
+  } catch (error) {
+    console.log(error);
   }
-
-  const event = await Event.findByPk(id);
-
-  if (!event) {
-    return c.json({ message: "Event not found!" }, 404);
-  }
-
-  if (typeof title === "string") event.title = title;
-  if (typeof location === "string") event.location = location;
-  if (typeof description === "string") event.description = description;
-  if (typeof startAt === "string") event.startAt = startAt;
-  if (typeof endAt === "string") event.endAt = endAt;
-  if (typeof meetingLinkRaw === "string") event.meetingLink = meetingLinkRaw;
-  if (typeof priceRaw === "number") event.price = priceRaw;
-
-  if (imageEventNew && imageEventNew.size > 0) {
-    const uploaded = await saveImage(imageEventNew);
-    event.image = uploaded.secure_url;
-  }
-
-  if (statusIdRaw !== undefined && statusIdRaw !== null && statusIdRaw !== "") {
-    const statusIdNew = Number(statusIdRaw);
-    if (Number.isNaN(statusIdNew)) {
-      throw new Error("Status Id tidak valid");
-    }
-    event.statusId = statusIdNew;
-  }
-
-  if (
-    categoryIdRaw !== undefined &&
-    categoryIdRaw !== null &&
-    categoryIdRaw !== ""
-  ) {
-    const categoryIdNew = Number(categoryIdRaw);
-    if (Number.isNaN(categoryIdNew)) {
-      throw new Error("Category Id tidak valid");
-    }
-    event.categoryId = categoryIdNew;
-  }
-
-  if (mentorIdRaw !== undefined && mentorIdRaw !== null && mentorIdRaw !== "") {
-    const mentorIdNew = Number(mentorIdRaw);
-    if (Number.isNaN(mentorIdNew)) {
-      throw new Error("Mentor Id tidak valid");
-    }
-    event.mentorId = mentorIdNew;
-  }
-
-  if (capacityRaw !== undefined && capacityRaw !== null && capacityRaw !== "") {
-    const capacityNew = Number(capacityRaw);
-    if (Number.isNaN(capacityNew)) {
-      throw new Error("Capacity tidak valid");
-    }
-    event.capacity = capacityNew;
-  }
-
-  if (typeof priceTypeRaw === "string" && priceTypeRaw !== "") {
-    if (!["free", "paid"].includes(priceTypeRaw)) {
-      throw new Error("PriceType tidak valid");
-    }
-    event.priceType = priceTypeRaw as "free" | "paid";
-  }
-
-  if (typeof locationTypeRaw === "string" && locationTypeRaw !== "") {
-    if (!["offline", "online"].includes(locationTypeRaw)) {
-      throw new Error("locationType tidak valid");
-    }
-    event.locationType = locationTypeRaw as "offline" | "online";
-  }
-
-  await event.save();
-
-  return c.json({
-    message: "Event has been updated!",
-    event,
-  });
 };
 
 export const joinEvent = async (c: Context) => {
@@ -198,14 +144,6 @@ export const joinEvent = async (c: Context) => {
       200,
     );
   } catch (error: any) {
-    if (error.message === "EVENT_NOT_FOUND") {
-      return c.json({ message: "Event not found" }, 404);
-    }
-
-    if (error.message === "USER_ALREADY_JOINED") {
-      return c.json({ message: "User already joined" }, 400);
-    }
-
     return c.json({ message: "Internal server error!" }, 500);
   }
 };
@@ -259,4 +197,15 @@ export const getUpcomingEventsController = async (c: Context) => {
   return c.json({
     data: events,
   });
+};
+
+export const countUserHistory = async (c: Context) => {
+  const authUser = c.get("user") as { id: number };
+  if (isNaN(authUser.id)) {
+    console.log("NAN");
+  }
+  const total = await EventParticipantModel.count({
+    where: { userId: authUser.id },
+  });
+  return c.json({ total });
 };

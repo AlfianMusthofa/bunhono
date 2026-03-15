@@ -1,4 +1,7 @@
+import { BadRequestError } from "../errors/BadRequestError";
+import { NotFoundError } from "../errors/NotFoundError";
 import { Certificate } from "../models/certificate.model";
+import { Event } from "../models/event.model";
 import { EventParticipantModel } from "../models/eventParticipant.model";
 import { User } from "../models/user.model";
 import { generateCertificate } from "../utils/generateCertificate";
@@ -13,6 +16,7 @@ export const uploadCertificateTemplateService = async (
   input: UploadTemplateInput,
 ) => {
   const { eventId, file } = input;
+
   const uploadResult = await saveImage(file);
   const certificate = await Certificate.create({
     eventId,
