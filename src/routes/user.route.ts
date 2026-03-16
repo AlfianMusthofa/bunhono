@@ -13,9 +13,9 @@ const userRoute = new Hono();
 
 userRoute.get("/", getUser);
 userRoute.post("/register", registerUserNew);
-userRoute.patch("/", authMiddleware, updateUserNew);
+userRoute.patch("/", updateUserNew);
 userRoute.patch("/:id", updateUserById);
-userRoute.get("/:id", authMiddleware, getUserById);
+userRoute.get("/:id", getUserById);
 userRoute.get("/me/history", authMiddleware, userEventHistory);
 
 export default userRoute;

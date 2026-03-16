@@ -32,7 +32,7 @@ export const registerUserNew = async (c: Context) => {
 };
 
 export const updateUserNew = async (c: Context) => {
-  const authUser = c.get("user") as { id: number };
+  const authUser = Number(c.req.param("id"));
   const formdata = await c.req.formData();
   const name = formdata.get("name") as string;
   const email = formdata.get("email") as string;
@@ -41,7 +41,7 @@ export const updateUserNew = async (c: Context) => {
 
   try {
     const user = await UpdateUserService(
-      authUser.id,
+      authUser,
       name,
       email,
       password,

@@ -43,7 +43,7 @@ export const getAllUsers = async (
 
 export const getSingleUserById = async (id: number) => {
   return User.findByPk(id, {
-    attributes: ["id", "name", "email"],
+    attributes: ["id", "name", "email", "image"],
     include: [
       {
         model: Event,
