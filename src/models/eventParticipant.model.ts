@@ -6,6 +6,8 @@ export class EventParticipantModel extends Model {
   declare id: number;
   declare userId: number;
   declare eventId: number;
+  declare ticketCode: string;
+  declare checkedInAt: Date;
   declare User?: User;
 }
 
@@ -23,6 +25,14 @@ EventParticipantModel.init(
     eventId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+    },
+    ticketCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    checkedInAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
   },
   {

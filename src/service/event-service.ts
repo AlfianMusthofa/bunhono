@@ -284,7 +284,11 @@ export const getUpcomingEvents = async ({ limit = 5 }: { limit?: number }) => {
   return events;
 };
 
-export const joinEventService = async (userId: number, eventId: number) => {
+export const joinEventService = async (
+  userId: number,
+  eventId: number,
+  ticketCode: string,
+) => {
   const event = await Event.findByPk(eventId);
   if (!event) {
     throw new NotFoundError("Event not found!");
@@ -295,7 +299,7 @@ export const joinEventService = async (userId: number, eventId: number) => {
   if (exist) {
     throw new BadRequestError("User already joined!");
   }
-  await EventParticipantModel.create({ userId, eventId });
+  await EventParticipantModel.create({ userId, eventId, ticketCode });
   return true;
 };
 

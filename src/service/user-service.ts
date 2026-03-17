@@ -7,6 +7,7 @@ import { Certificate } from "../models/certificate.model";
 import { saveImage } from "../utils/upload";
 import { NotFoundError } from "../errors/NotFoundError";
 import { BadRequestError } from "../errors/BadRequestError";
+import { EventParticipantModel } from "../models/eventParticipant.model";
 
 export const getAllUsers = async (
   search?: string,
@@ -102,11 +103,16 @@ export const UserEventHistoryService = async (
         },
         required: false,
       },
+      {
+        model: EventParticipantModel,
+        where: { userId: id },
+        attributes: ["ticketCode", "createdAt"],
+      },
     ],
     where,
     limit,
     offset,
-    order: [["startAt", "ASC"]],
+    order: [["createdAt", "DESC"]],
   });
   const totalPage = Math.ceil(count / limit);
 

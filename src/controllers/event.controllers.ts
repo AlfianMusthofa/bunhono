@@ -13,6 +13,8 @@ import {
   UpdateEventService,
 } from "../service/event-service";
 import { EventParticipantModel } from "../models/eventParticipant.model";
+import { nanoid } from "nanoid";
+import QRCode from "qrcode";
 
 export const createEvent = async (c: Context) => {
   const formData = await c.req.formData();
@@ -135,11 +137,17 @@ export const joinEvent = async (c: Context) => {
     return c.json({ message: "Invalid event id" }, 400);
   }
 
+  const ticketCode = `EVT-${eventId}-${nanoid(6)}`;
+
   try {
-    await joinEventService(userId, eventId);
+    await joinEventService(userId, eventId, ticketCode);
+    const qrCode = await QRCode.toDataURL(ticketCode);
     return c.json(
       {
         message: "Success joined",
+        data: {
+          qrCode,
+        },
       },
       200,
     );

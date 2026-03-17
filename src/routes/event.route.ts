@@ -12,7 +12,10 @@ import {
   updateEvent,
 } from "../controllers/event.controllers";
 import { authMiddleware } from "../middleware/auth.middleware";
-import { getEventParticipants } from "../controllers/eventParticipant.controllers";
+import {
+  checkinParticipant,
+  getEventParticipants,
+} from "../controllers/eventParticipant.controllers";
 
 const eventRoute = new Hono();
 
@@ -27,5 +30,6 @@ eventRoute.get("/slug/:slug", getEventBySlug);
 eventRoute.get("/charts/monthly", getEventMonthlyChart);
 eventRoute.get("/dashboard/participants/monthly", getParticipantsMonthlyChart);
 eventRoute.get("/totalHistory", authMiddleware, countUserHistory);
+eventRoute.post("/checkin", checkinParticipant);
 
 export default eventRoute;
