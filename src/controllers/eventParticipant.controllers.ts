@@ -31,18 +31,43 @@ export const checkinParticipant = async (c: Context) => {
 
   const participant = await EventParticipantModel.findOne({
     where: { ticketCode },
+    include: {
+      model: User,
+      attributes: ["name"],
+    },
   });
 
   if (!participant) {
-    return c.json({ message: "Ticket not valid" }, 404);
+    return c.json(
+      {
+        status: "error",
+        message: "Ticket not valid",
+      },
+      404,
+    );
   }
 
   if (participant.checkedInAt) {
-    return c.json({ message: "Already check in" }, 400);
+    return c.json(
+      {
+        status: "warning",
+        message: "Already check-in",
+      },
+      400,
+    );
   }
 
   participant.checkedInAt = new Date();
   await participant.save();
 
-  return c.json({ message: "Check In Success" }, 200);
+  return c.json(
+    {
+      status: "success",
+      message: "Check-In Success",
+      data: {
+        name: participant.User?.name,
+      },
+    },
+    200,
+  );
 };

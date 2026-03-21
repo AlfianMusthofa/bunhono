@@ -15,6 +15,7 @@ import {
 import { EventParticipantModel } from "../models/eventParticipant.model";
 import { nanoid } from "nanoid";
 import QRCode from "qrcode";
+import { SendTicketEmail } from "../utils/SendTicketEmail";
 
 export const createEvent = async (c: Context) => {
   const formData = await c.req.formData();
@@ -129,8 +130,9 @@ export const updateEvent = async (c: Context) => {
 };
 
 export const joinEvent = async (c: Context) => {
-  const authUserId = c.get("user") as { id: number };
+  const authUserId = c.get("user") as { id: number; email: string };
   const userId = authUserId.id;
+  const emailUser = authUserId.email;
   const eventId = Number(c.req.param("id"));
 
   if (Number.isNaN(eventId)) {
@@ -140,8 +142,21 @@ export const joinEvent = async (c: Context) => {
   const ticketCode = `EVT-${eventId}-${nanoid(6)}`;
 
   try {
+    const event = await Event.findByPk(eventId);
+
     await joinEventService(userId, eventId, ticketCode);
     const qrCode = await QRCode.toDataURL(ticketCode);
+
+    if (event?.locationType === "offline") {
+      setTimeout(() => {
+        SendTicketEmail(emailUser, qrCode, {
+          title: event.title,
+          location: event.location,
+          date: event.startAt,
+        });
+      }, 2000);
+    }
+
     return c.json(
       {
         message: "Success joined",
