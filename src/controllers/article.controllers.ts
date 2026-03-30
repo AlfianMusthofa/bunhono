@@ -5,6 +5,9 @@ import {
   getAllArticlesService,
   UpdateArticleService,
 } from "../service/article-service";
+import { Article } from "../models/article.model";
+import { Category } from "../models/category.model";
+import { NotFoundError } from "../errors/NotFoundError";
 
 export const getAllArticles = async (c: Context) => {
   const limit = Number(c.req.query("limit")) || 10;
@@ -69,6 +72,32 @@ export const deleteArticle = async (c: Context) => {
   try {
     const res = await DeleteArticleService(slug);
     return c.json({ message: "Article deleted successfully" });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getArticleBySlug = async (c: Context) => {
+  const slug = c.req.param("slug");
+  try {
+    const res = await Article.findOne({
+      where: {
+        slug,
+      },
+      include: [
+        {
+          model: Category,
+          as: "category",
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+
+    if (!res) {
+      throw new NotFoundError("Article not found");
+    }
+
+    return c.json(res);
   } catch (error) {
     console.log(error);
   }

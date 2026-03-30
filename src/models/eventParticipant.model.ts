@@ -1,6 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/database";
 import type { User } from "./user.model";
+import type { Event } from "./event.model";
 
 export class EventParticipantModel extends Model {
   declare id: number;
@@ -8,7 +9,9 @@ export class EventParticipantModel extends Model {
   declare eventId: number;
   declare ticketCode: string;
   declare checkedInAt: Date;
+  declare reminder_sent: Boolean;
   declare User?: User;
+  declare Event?: Event;
 }
 
 EventParticipantModel.init(
@@ -33,6 +36,10 @@ EventParticipantModel.init(
     checkedInAt: {
       type: DataTypes.DATE,
       allowNull: true,
+    },
+    reminder_sent: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
     },
   },
   {

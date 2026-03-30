@@ -8,7 +8,9 @@ const fontPath = path.join(
 );
 
 registerFont(fontPath, {
-  family: "Great Vibes",
+  family: "GreatVibes",
+  weight: "normal",
+  style: "normal",
 });
 
 export const generateCertificate = async ({
@@ -25,7 +27,7 @@ export const generateCertificate = async ({
 
   ctx.drawImage(image, 0, 0);
 
-  ctx.font = "normal 100px 'Great Vibes'";
+  ctx.font = "normal 100px GreatVibes";
   ctx.fillStyle = "#000";
   ctx.textAlign = "center";
 
