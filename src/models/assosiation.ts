@@ -8,6 +8,8 @@ import { EventStatus } from "./eventStatus.model";
 import { Certificate } from "./certificate.model";
 import { Article } from "./article.model";
 import { Tags } from "./tags.model";
+import { Like } from "./like.model";
+import { Comment } from "./comment.model";
 
 Category.hasMany(Event, {
   foreignKey: "categoryId",
@@ -78,5 +80,14 @@ Certificate.belongsTo(EventParticipantModel, { foreignKey: "participantId" });
 
 Article.belongsTo(Category, { foreignKey: "categoryId", as: "category" });
 Category.hasMany(Article, { foreignKey: "categoryId" });
+
+User.hasMany(Like, { foreignKey: "userId" });
+Like.belongsTo(User, { foreignKey: "userId" });
+
+Article.hasMany(Like, { foreignKey: "articleId" });
+Like.belongsTo(Article, { foreignKey: "articleId" });
+
+User.hasMany(Comment, { foreignKey: "userId" });
+Comment.belongsTo(User, { foreignKey: "userId" });
 
 export { Event, Mentor, Category };

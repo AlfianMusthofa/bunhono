@@ -8,6 +8,7 @@ import {
 import { Article } from "../models/article.model";
 import { Category } from "../models/category.model";
 import { NotFoundError } from "../errors/NotFoundError";
+import { Like } from "../models/like.model";
 
 export const getAllArticles = async (c: Context) => {
   const limit = Number(c.req.query("limit")) || 10;
@@ -79,26 +80,38 @@ export const deleteArticle = async (c: Context) => {
 
 export const getArticleBySlug = async (c: Context) => {
   const slug = c.req.param("slug");
-  try {
-    const res = await Article.findOne({
-      where: {
-        slug,
+  const user = c.get("user") as { id: number } | undefined;
+
+  const article = await Article.findOne({
+    where: { slug },
+    include: [
+      {
+        model: Category,
+        as: "category",
+        attributes: ["id", "name"],
       },
-      include: [
-        {
-          model: Category,
-          as: "category",
-          attributes: ["id", "name"],
-        },
-      ],
+    ],
+  });
+
+  if (!article) {
+    throw new NotFoundError("Article not found");
+  }
+
+  let liked = false;
+
+  if (user) {
+    const existingLike = await Like.findOne({
+      where: {
+        userId: user.id,
+        articleId: article.id,
+      },
     });
 
-    if (!res) {
-      throw new NotFoundError("Article not found");
-    }
-
-    return c.json(res);
-  } catch (error) {
-    console.log(error);
+    liked = !!existingLike;
   }
+
+  return c.json({
+    article,
+    liked,
+  });
 };

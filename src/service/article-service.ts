@@ -117,7 +117,10 @@ export const UpdateArticleService = async (
     throw new NotFoundError("Article not found!");
   }
 
-  if (title) article.title = title;
+  if (title && title !== article.title) {
+    article.title = title;
+    article.slug = generateSlug(title);
+  }
   if (content) article.content = content;
   if (categoryId !== undefined && !isNaN(categoryId)) {
     article.categoryId = categoryId;
@@ -129,6 +132,8 @@ export const UpdateArticleService = async (
   }
 
   await article.save();
+
+  return true;
 };
 
 export const GetSingleArticle = async (slug: string) => {

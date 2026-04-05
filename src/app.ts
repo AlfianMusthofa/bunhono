@@ -11,6 +11,7 @@ import certif from "./routes/certificate.route";
 import report from "./routes/report.route";
 import "./jobs/eventStatus.job";
 import articles from "./routes/article.route";
+import comments from "./routes/comment.route";
 
 const app = new Hono();
 
@@ -27,5 +28,6 @@ app.route("/status", statusRoute);
 app.route("/certificate", certif);
 app.route("/report", report);
 app.route("/articles", articles);
+app.route("/comments", comments);
 
 export default app;

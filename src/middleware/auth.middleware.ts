@@ -26,3 +26,20 @@ export const authMiddleware = async (c: Context, next: Next) => {
     return c.json({ message: "Invalid Token" }, 401);
   }
 };
+
+export const optionalAuth = async (c: Context, next: Next) => {
+  const authHeader = c.req.header("Authorization");
+
+  if (authHeader) {
+    try {
+      const token = authHeader.split(" ")[1];
+      const decoded = verifyToken(token); // jwt verify
+
+      c.set("user", decoded);
+    } catch (err) {
+      // token invalid → abaikan
+    }
+  }
+
+  await next();
+};
