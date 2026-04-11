@@ -110,8 +110,15 @@ export const getArticleBySlug = async (c: Context) => {
     liked = !!existingLike;
   }
 
+  const totalLikes = await Like.count({
+    where: {
+      articleId: article.id,
+    },
+  });
+
   return c.json({
     article,
     liked,
+    totalLikes,
   });
 };

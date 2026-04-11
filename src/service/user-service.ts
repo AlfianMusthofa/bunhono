@@ -8,6 +8,7 @@ import { saveImage } from "../utils/upload";
 import { NotFoundError } from "../errors/NotFoundError";
 import { BadRequestError } from "../errors/BadRequestError";
 import { EventParticipantModel } from "../models/eventParticipant.model";
+import { Review } from "../models/review.model";
 
 export const getAllUsers = async (
   search?: string,

@@ -1,15 +1,18 @@
-import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../config/database";
+import { DataTypes, Model } from "sequelize";
 
-export class Comment extends Model {
+export class Review extends Model {
   declare id: number;
   declare userId: number;
-  declare articleId: number;
+  declare eventId: number;
+  declare rating: number;
   declare content: string;
-  declare parentId: number;
+  declare image: string;
+  declare User?: [];
+  declare Event?: [];
 }
 
-Comment.init(
+Review.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -20,22 +23,32 @@ Comment.init(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    articleId: {
+    eventId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    rating: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
     content: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
-    parentId: {
-      type: DataTypes.INTEGER,
+    image: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
   },
   {
     sequelize,
-    tableName: "comments",
+    tableName: "reviews",
     timestamps: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ["userId", "eventId"],
+      },
+    ],
   },
 );

@@ -16,6 +16,7 @@ import {
   checkinParticipant,
   getEventParticipants,
 } from "../controllers/eventParticipant.controllers";
+import { getMyReview } from "../controllers/review.controllers";
 
 const eventRoute = new Hono();
 
@@ -31,5 +32,6 @@ eventRoute.get("/charts/monthly", getEventMonthlyChart);
 eventRoute.get("/dashboard/participants/monthly", getParticipantsMonthlyChart);
 eventRoute.get("/totalHistory", authMiddleware, countUserHistory);
 eventRoute.post("/checkin", checkinParticipant);
+eventRoute.get("/:eventId/my-review", authMiddleware, getMyReview);
 
 export default eventRoute;

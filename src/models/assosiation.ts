@@ -10,6 +10,7 @@ import { Article } from "./article.model";
 import { Tags } from "./tags.model";
 import { Like } from "./like.model";
 import { Comment } from "./comment.model";
+import { Review } from "./review.model";
 
 Category.hasMany(Event, {
   foreignKey: "categoryId",
@@ -89,5 +90,18 @@ Like.belongsTo(Article, { foreignKey: "articleId" });
 
 User.hasMany(Comment, { foreignKey: "userId" });
 Comment.belongsTo(User, { foreignKey: "userId" });
+
+Article.hasMany(Comment, { foreignKey: "articleId" });
+Comment.belongsTo(Article, {
+  foreignKey: "articleId",
+});
+
+Comment.hasMany(Comment, { foreignKey: "parentId", as: "replies" });
+Comment.belongsTo(Comment, { foreignKey: "parentId", as: "parent" });
+
+Review.belongsTo(User, { foreignKey: "userId", as: "user" });
+Review.belongsTo(Event, { foreignKey: "eventId", as: "event" });
+User.hasMany(Review, { foreignKey: "userId" });
+Event.hasMany(Review, { foreignKey: "eventId" });
 
 export { Event, Mentor, Category };
