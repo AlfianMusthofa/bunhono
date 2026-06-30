@@ -25,6 +25,7 @@ export class Event extends Model {
   declare priceType: "free" | "paid";
   declare price: number;
   declare currency: number;
+  declare point_reward: number;
 }
 
 Event.init(
@@ -110,6 +111,10 @@ Event.init(
     currency: {
       type: DataTypes.STRING,
       defaultValue: "IDR",
+    },
+    point_reward: {
+      type: DataTypes.INTEGER,
+      defaultValue: 10,
     },
   },
   {

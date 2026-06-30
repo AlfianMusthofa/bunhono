@@ -7,6 +7,7 @@ export class User extends Model {
   declare email: string;
   declare password: string;
   declare image: string | null;
+  declare total_points: number;
   declare Events?: Event;
 }
 
@@ -32,6 +33,10 @@ User.init(
     image: {
       type: DataTypes.STRING,
       allowNull: true,
+    },
+    total_points: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
     },
   },
   {

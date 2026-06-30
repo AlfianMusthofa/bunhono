@@ -5,6 +5,7 @@ import {
   getReviewsService,
   postReviewService,
 } from "../service/review-service";
+import { Review } from "../models/review.model";
 
 export const getReviews = async (c: Context) => {
   const limit = Number(c.req.query("limit")) || 10;
@@ -38,7 +39,7 @@ export const postReview = async (c: Context) => {
   const eventId = Number(c.req.param("eventId"));
   const content = formData.get("content") as string;
   const rating = Number(formData.get("rating"));
-  const image = formData.get("image") as File | null;
+  const image = (formData.get("image") as File | null) ?? undefined;
 
   try {
     if (!eventId || isNaN(eventId)) {
@@ -73,6 +74,21 @@ export const getMyReview = async (c: Context) => {
     return c.json({
       myReview: review,
     });
+  } catch (error) {
+    console.error(error);
+    return c.json({ message: "Internal Server Error" }, 500);
+  }
+};
+
+export const totalReview = async (c: Context) => {
+  const authUser = c.get("user") as { id: number };
+  try {
+    const total = await Review.count({
+      where: {
+        userId: authUser.id,
+      },
+    });
+    return c.json(total);
   } catch (error) {
     console.error(error);
     return c.json({ message: "Internal Server Error" }, 500);

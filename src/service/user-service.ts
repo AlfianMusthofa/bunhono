@@ -108,6 +108,13 @@ export const UserEventHistoryService = async (
         model: EventParticipantModel,
         where: { userId: id },
         attributes: ["ticketCode", "createdAt"],
+        include: [
+          {
+            model: Certificate,
+            attributes: ["id", "templatePath"],
+            required: false,
+          },
+        ],
       },
     ],
     where,
@@ -116,6 +123,16 @@ export const UserEventHistoryService = async (
     order: [["createdAt", "DESC"]],
   });
   const totalPage = Math.ceil(count / limit);
+
+  const totalCertificates = await Certificate.count({
+    include: [
+      {
+        model: EventParticipantModel,
+        where: { userId: id },
+        attributes: [],
+      },
+    ],
+  });
 
   return {
     user: {
@@ -129,6 +146,7 @@ export const UserEventHistoryService = async (
       page,
       limit,
       totalPage,
+      totalCertificates,
     },
   };
 };

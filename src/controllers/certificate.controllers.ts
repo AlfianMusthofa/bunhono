@@ -21,10 +21,6 @@ export const uploadCertificateTemplate = async (c: Context) => {
     return c.json({ message: "Invalid event id" }, 400);
   }
 
-  //   if (!file) {
-  //     return c.json({ message: "Template file is required" }, 400);
-  //   }
-
   const result = await uploadCertificateTemplateService({
     eventId,
     file,
