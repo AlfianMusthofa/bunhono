@@ -13,6 +13,8 @@ import "./jobs/eventStatus.job";
 import articles from "./routes/article.route";
 import comments from "./routes/comment.route";
 import reviews from "./routes/review.route";
+import chat from "./routes/aichat.route";
+import emailRoute from "./routes/email.route";
 
 const app = new Hono();
 
@@ -31,5 +33,7 @@ app.route("/report", report);
 app.route("/articles", articles);
 app.route("/comments", comments);
 app.route("/reviews", reviews);
+app.route("/ai", chat);
+app.route("/email", emailRoute);
 
 export default app;

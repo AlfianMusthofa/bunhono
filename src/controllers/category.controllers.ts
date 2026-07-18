@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import { Category } from "../models/category.model";
 import { Event } from "../models/event.model";
 import { GetAllCategoriesService } from "../service/category-service";
+import { EventStatus } from "../models/eventStatus.model";
 
 export const addCategory = async (c: Context) => {
   const body = await c.req.json();
@@ -31,7 +32,19 @@ export const getCategoryWithEvents = async (c: Context) => {
     include: [
       {
         model: Event,
-        attributes: ["id", "slug", "title", "image", "description"],
+        attributes: ["id", "slug", "title", "image", "description", "startAt"],
+        include: [
+          {
+            model: EventStatus,
+            as: "status",
+            attributes: [],
+            where: {
+              code: "active",
+            },
+            required: true,
+          },
+        ],
+        required: false,
       },
     ],
   });
