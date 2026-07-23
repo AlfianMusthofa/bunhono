@@ -7,10 +7,8 @@ export class AIController {
   static async chat(c: Context) {
     const { message } = await c.req.json();
 
-    // Mendeteksi apakah pertanyaan mengandung periode waktu
     const range = getDateRange(message);
 
-    // Jika ada periode waktu, ambil data event dari database
     if (range) {
       const events = await EventService.getEventsByDateRange(
         range.start,
@@ -41,12 +39,79 @@ Harga : ${event.priceType}
       });
     }
 
-    // Pertanyaan umum
     const reply = await askGemini(message);
 
     return c.json({
       success: true,
       reply,
     });
+  }
+
+  static async eventChat(c: Context) {
+    try {
+      const slug = c.req.param("slug");
+      const { message } = await c.req.json();
+      const event = await EventService.getEventBySlug(slug);
+
+      if (!event) {
+        return c.json(
+          {
+            success: false,
+            message: "Event not found!",
+          },
+          404,
+        );
+      }
+
+      const context = `
+      Informasi Event
+
+      Nama Event:
+      ${event.title}
+
+      Deskripsi:
+      ${event.description}
+
+      Tanggal Mulai:
+      ${new Date(event.startAt).toLocaleString("id-ID")}
+
+      Tanggal Selesai:
+      ${new Date(event.endAt).toLocaleString("id-ID")}
+
+      Lokasi:
+      ${event.location}
+
+      Tipe Lokasi:
+      ${event.locationType}
+
+      Harga:
+      ${event.priceType}
+
+      Kapasitas:
+      ${event.capacity}
+
+      Mentor:
+      ${event.mentor?.name}
+
+      Mentor:
+      ${event.category?.name}
+
+      `;
+
+      const reply = await askGemini(message, context);
+      return c.json({
+        success: true,
+        reply,
+      });
+    } catch (error) {
+      console.error(error);
+      return c.json(
+        {
+          success: false,
+          message: "Internal server error",
+        },
+        500,
+      );
+    }
   }
 }

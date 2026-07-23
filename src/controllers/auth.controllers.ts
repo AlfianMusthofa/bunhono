@@ -5,131 +5,229 @@ import { loginSchema } from "../validators/auth.validator";
 import { signRefreshToken, signToken, verifyRefreshToken } from "../utils/jwt";
 import crypto from "crypto";
 import { RefreshToken } from "../models/refreshToken.model";
+import { generateOTP, sendOTP } from "../service/OTPService";
+import { OtpCodes } from "../models/otp_codes";
+import { RegisterUserServive } from "../service/user-service";
+import { createAuthSession } from "../service/auth-service";
 
-export const login = async (c: Context) => {
-  const body = await c.req.json();
-  const data = loginSchema.parse(body);
+export class AuthController {
+  static async login(c: Context) {
+    const body = await c.req.json();
+    const data = loginSchema.parse(body);
 
-  const user = await User.findOne({
-    where: {
-      email: data.email,
-    },
-  });
+    const user = await User.findOne({
+      where: {
+        email: data.email,
+      },
+    });
 
-  if (!user) {
-    return c.json({ message: "Email or Password Invalid!" }, 401);
+    if (!user) {
+      return c.json({ message: "Email or Password Invalid!" }, 401);
+    }
+
+    const match = await bcrypt.compare(data.password, user.password);
+    console.log(match);
+    if (!match) {
+      return c.json({ message: "Password Invalid!" }, 401);
+    }
+
+    const { accessToken, refreshToken } = await createAuthSession(user);
+
+    return c.json({
+      message: "Login Success",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+      },
+      accessToken,
+      refreshToken,
+    });
   }
 
-  const match = await bcrypt.compare(data.password, user.password);
-  console.log(match);
-  if (!match) {
-    return c.json({ message: "Password Invalid!" }, 401);
+  static async logout(c: Context) {
+    const authUser = c.get("user") as { id: number };
+    const { refreshToken } = await c.req.json();
+
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(refreshToken)
+      .digest("hex");
+
+    await RefreshToken.destroy({
+      where: {
+        userId: authUser.id,
+        tokenHash,
+      },
+    });
+
+    return c.json({ message: "Logout success" });
   }
 
-  const payload = {
-    id: user.id,
-    email: user.email,
-    image: user.image,
-  };
+  static async refresh(c: Context) {
+    const { refreshToken } = await c.req.json();
 
-  const accessToken = signToken(payload);
-  const refreshToken = signRefreshToken(payload);
+    if (!refreshToken) {
+      return c.json({ message: "Refresh token required" }, 401);
+    }
 
-  const tokenHash = crypto
-    .createHash("sha256")
-    .update(refreshToken)
-    .digest("hex");
+    const payload = verifyRefreshToken(refreshToken);
 
-  await RefreshToken.create({
-    userId: user.id,
-    tokenHash,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-  });
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(refreshToken)
+      .digest("hex");
 
-  return c.json({
-    message: "Login Success",
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      image: user.image,
-    },
-    accessToken,
-    refreshToken,
-  });
-};
+    const stored = await RefreshToken.findOne({
+      where: {
+        userId: payload.id,
+        tokenHash,
+      },
+    });
 
-export const refresh = async (c: Context) => {
-  const { refreshToken } = await c.req.json();
+    if (!stored) {
+      return c.json({ message: "Invalid refresh token" }, 401);
+    }
 
-  if (!refreshToken) {
-    return c.json({ message: "Refresh token required" }, 401);
+    if (stored.expiresAt < new Date()) {
+      await stored.destroy();
+      return c.json({ message: "Refresh token expired" }, 401);
+    }
+
+    const newAccessToken = signToken({
+      id: payload.id,
+      email: payload.email,
+    });
+
+    return c.json({ accessToken: newAccessToken });
   }
 
-  const payload = verifyRefreshToken(refreshToken);
+  static async me(c: Context) {
+    const authUser = c.get("user") as { id: number };
 
-  const tokenHash = crypto
-    .createHash("sha256")
-    .update(refreshToken)
-    .digest("hex");
+    if (!authUser?.id) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
 
-  const stored = await RefreshToken.findOne({
-    where: {
-      userId: payload.id,
-      tokenHash,
-    },
-  });
+    const user = await User.findByPk(authUser.id, {
+      attributes: ["id", "name", "email", "image"],
+    });
 
-  if (!stored) {
-    return c.json({ message: "Invalid refresh token" }, 401);
+    if (!user) {
+      return c.json({ message: "User not found" }, 404);
+    }
+
+    return c.json(user);
   }
 
-  if (stored.expiresAt < new Date()) {
-    await stored.destroy();
-    return c.json({ message: "Refresh token expired" }, 401);
+  static async sendOTPReg(c: Context) {
+    try {
+      const { email } = await c.req.json();
+      const otp = generateOTP();
+
+      const existingEmail = await User.findOne({
+        where: { email },
+      });
+
+      if (existingEmail) {
+        return c.json(
+          {
+            success: false,
+            message: "Email already registered.",
+          },
+          400,
+        );
+      }
+
+      await OtpCodes.destroy({
+        where: {
+          email,
+          isUsed: false,
+        },
+      });
+
+      await OtpCodes.create({
+        email,
+        code: otp,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+
+      await sendOTP(email, otp);
+
+      return c.json({
+        success: true,
+        message: "OTP has been send!",
+      });
+    } catch (error) {
+      console.log(error);
+      return c.json({
+        success: false,
+        message: "OTP failed",
+      });
+    }
   }
 
-  const newAccessToken = signToken({
-    id: payload.id,
-    email: payload.email,
-  });
+  static async verifyOTP(c: Context) {
+    try {
+      const { name, email, password, otp } = await c.req.json();
 
-  return c.json({ accessToken: newAccessToken });
-};
+      const otpData = await OtpCodes.findOne({
+        where: {
+          email,
+          code: otp,
+          isUsed: false,
+        },
+        order: [["createdAt", "DESC"]],
+      });
 
-export const logout = async (c: Context) => {
-  const authUser = c.get("user") as { id: number };
-  const { refreshToken } = await c.req.json();
+      if (!otpData) {
+        return c.json(
+          {
+            success: false,
+            message: "OTP is not valid!",
+          },
+          400,
+        );
+      }
 
-  const tokenHash = crypto
-    .createHash("sha256")
-    .update(refreshToken)
-    .digest("hex");
+      if (otpData.expiresAt < new Date()) {
+        return c.json(
+          {
+            success: false,
+            message: "OTP is not valid!",
+          },
+          400,
+        );
+      }
 
-  await RefreshToken.destroy({
-    where: {
-      userId: authUser.id,
-      tokenHash,
-    },
-  });
+      const user = await RegisterUserServive(name, email, password);
 
-  return c.json({ message: "Logout success" });
-};
+      otpData.isUsed = true;
+      await otpData.save();
 
-export const me = async (c: Context) => {
-  const authUser = c.get("user") as { id: number };
+      const { accessToken, refreshToken } = await createAuthSession(user);
 
-  if (!authUser?.id) {
-    return c.json({ message: "Unauthorized" }, 401);
+      return c.json({
+        message: "Register Success",
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        },
+        accessToken,
+        refreshToken,
+      });
+    } catch (error) {
+      console.error(error);
+      return c.json(
+        {
+          success: false,
+          message: "Something wrong!",
+        },
+        500,
+      );
+    }
   }
-
-  const user = await User.findByPk(authUser.id, {
-    attributes: ["id", "name", "email", "image"],
-  });
-
-  if (!user) {
-    return c.json({ message: "User not found" }, 404);
-  }
-
-  return c.json(user);
-};
+}

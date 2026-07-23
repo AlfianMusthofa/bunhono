@@ -5,7 +5,7 @@ const ai = new GoogleGenAI({
 });
 
 const SYSTEM_PROMPT = `
-Kamu adalah AI Assistant resmi website Event Organizer bernama Elevate Hub.
+Kamu adalah AI Assistant resmi website Event Organizer bernama MinHub.
 
 Tugas utama:
 - Membantu pengunjung memahami website Elevate Hub.
@@ -52,18 +52,6 @@ Balas dengan:
 
 Jangan pernah melanggar aturan di atas.
 `;
-
-// export async function askGemini(message: string) {
-//   const response = await ai.models.generateContent({
-//     model: "gemini-2.5-flash",
-//     contents: `${SYSTEM_PROMPT}
-
-// Pertanyaan pengguna:
-// ${message}`,
-//   });
-
-//   return response.text ?? "";
-// }
 
 export async function askGemini(question: string, context = "") {
   const prompt = `
