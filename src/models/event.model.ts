@@ -26,6 +26,7 @@ export class Event extends Model {
   declare price: number;
   declare currency: number;
   declare point_reward: number;
+  declare organizerId: number;
 }
 
 Event.init(
@@ -115,6 +116,10 @@ Event.init(
     point_reward: {
       type: DataTypes.INTEGER,
       defaultValue: 10,
+    },
+    organizerId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
   },
   {

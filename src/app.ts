@@ -15,6 +15,7 @@ import comments from "./routes/comment.route";
 import reviews from "./routes/review.route";
 import chat from "./routes/aichat.route";
 import emailRoute from "./routes/email.route";
+import organizer from "./routes/organizer.route";
 
 const app = new Hono();
 
@@ -35,5 +36,6 @@ app.route("/comments", comments);
 app.route("/reviews", reviews);
 app.route("/ai", chat);
 app.route("/email", emailRoute);
+app.route("/organizer", organizer);
 
 export default app;
